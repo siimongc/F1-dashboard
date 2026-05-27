@@ -1,0 +1,89 @@
+{
+  "tracks": [
+    {
+      "id": "monaco",
+      "name": "Monaco GP",
+      "model": "XGBoost v1",
+      "before": {
+        "accuracy": 0.72, "precision": 0.68, "recall": 0.65,
+        "f1_score": 0.66, "auc_roc": 0.74, "log_loss": 0.58,
+        "mse": 0.31, "r2": 0.61
+      },
+      "after": {
+        "accuracy": 0.94, "precision": 0.92, "recall": 0.91,
+        "f1_score": 0.915, "auc_roc": 0.97, "log_loss": 0.12,
+        "mse": 0.07, "r2": 0.93
+      },
+      "confusion_before": { "tp": 128, "fp": 62, "fn": 70, "tn": 240 },
+      "confusion_after": { "tp": 185, "fp": 16, "fn": 18, "tn": 281 },
+      "training": {
+        "params": { "lr": 0.001, "batch_size": 32, "epochs": 30, "optimizer": "Adam", "dropout": 0.3, "architecture": "XGBoost", "features": 42, "train_size": 8500 },
+        "history": [
+          { "epoch": 1, "train_loss": 0.82, "val_loss": 0.85, "train_acc": 0.55, "val_acc": 0.52 },
+          { "epoch": 5, "train_loss": 0.61, "val_loss": 0.65, "train_acc": 0.68, "val_acc": 0.64 },
+          { "epoch": 10, "train_loss": 0.42, "val_loss": 0.48, "train_acc": 0.78, "val_acc": 0.74 },
+          { "epoch": 15, "train_loss": 0.28, "val_loss": 0.35, "train_acc": 0.85, "val_acc": 0.82 },
+          { "epoch": 20, "train_loss": 0.18, "val_loss": 0.22, "train_acc": 0.91, "val_acc": 0.88 },
+          { "epoch": 25, "train_loss": 0.12, "val_loss": 0.15, "train_acc": 0.94, "val_acc": 0.92 },
+          { "epoch": 30, "train_loss": 0.08, "val_loss": 0.13, "train_acc": 0.96, "val_acc": 0.94 }
+        ]
+      }
+    },
+    {
+      "id": "silverstone",
+      "name": "Silverstone GP",
+      "model": "Random Forest v2",
+      "before": {
+        "accuracy": 0.78, "precision": 0.75, "recall": 0.72,
+        "f1_score": 0.73, "auc_roc": 0.80, "log_loss": 0.45,
+        "mse": 0.24, "r2": 0.70
+      },
+      "after": {
+        "accuracy": 0.91, "precision": 0.89, "recall": 0.88,
+        "f1_score": 0.885, "auc_roc": 0.95, "log_loss": 0.18,
+        "mse": 0.10, "r2": 0.90
+      },
+      "confusion_before": { "tp": 144, "fp": 48, "fn": 56, "tn": 252 },
+      "confusion_after": { "tp": 176, "fp": 22, "fn": 24, "tn": 278 },
+      "training": {
+        "params": { "lr": 0.0005, "batch_size": 64, "epochs": 25, "optimizer": "AdamW", "dropout": 0.25, "architecture": "Random Forest", "features": 38, "train_size": 12000 },
+        "history": [
+          { "epoch": 1, "train_loss": 0.75, "val_loss": 0.78, "train_acc": 0.60, "val_acc": 0.58 },
+          { "epoch": 5, "train_loss": 0.55, "val_loss": 0.60, "train_acc": 0.72, "val_acc": 0.69 },
+          { "epoch": 10, "train_loss": 0.38, "val_loss": 0.44, "train_acc": 0.81, "val_acc": 0.78 },
+          { "epoch": 15, "train_loss": 0.25, "val_loss": 0.32, "train_acc": 0.87, "val_acc": 0.84 },
+          { "epoch": 20, "train_loss": 0.16, "val_loss": 0.21, "train_acc": 0.91, "val_acc": 0.89 },
+          { "epoch": 25, "train_loss": 0.11, "val_loss": 0.18, "train_acc": 0.93, "val_acc": 0.91 }
+        ]
+      }
+    },
+    {
+      "id": "monza",
+      "name": "Monza GP",
+      "model": "Neural Net v3",
+      "before": {
+        "accuracy": 0.65, "precision": 0.60, "recall": 0.58,
+        "f1_score": 0.59, "auc_roc": 0.68, "log_loss": 0.72,
+        "mse": 0.40, "r2": 0.52
+      },
+      "after": {
+        "accuracy": 0.96, "precision": 0.95, "recall": 0.94,
+        "f1_score": 0.945, "auc_roc": 0.99, "log_loss": 0.08,
+        "mse": 0.04, "r2": 0.96
+      },
+      "confusion_before": { "tp": 116, "fp": 78, "fn": 84, "tn": 222 },
+      "confusion_after": { "tp": 192, "fp": 10, "fn": 12, "tn": 286 },
+      "training": {
+        "params": { "lr": 0.0001, "batch_size": 16, "epochs": 50, "optimizer": "SGD + Momentum", "dropout": 0.4, "architecture": "Deep NN (4 layers)", "features": 56, "train_size": 15000 },
+        "history": [
+          { "epoch": 1, "train_loss": 0.90, "val_loss": 0.92, "train_acc": 0.48, "val_acc": 0.45 },
+          { "epoch": 10, "train_loss": 0.65, "val_loss": 0.70, "train_acc": 0.62, "val_acc": 0.58 },
+          { "epoch": 20, "train_loss": 0.40, "val_loss": 0.48, "train_acc": 0.78, "val_acc": 0.74 },
+          { "epoch": 30, "train_loss": 0.22, "val_loss": 0.30, "train_acc": 0.88, "val_acc": 0.85 },
+          { "epoch": 40, "train_loss": 0.10, "val_loss": 0.15, "train_acc": 0.95, "val_acc": 0.93 },
+          { "epoch": 50, "train_loss": 0.05, "val_loss": 0.09, "train_acc": 0.97, "val_acc": 0.96 }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg:           #15151E;
+  --surface:      #1E1E2E;
+  --surface-alt:  #252538;
+  --border:       #2A2A40;
+  --red:          #E10600;
+  --red-glow:     rgba(225, 6, 0, 0.3);
+  --white:        #FFFFFF;
+  --gray:         #8B8BA3;
+  --light-gray:   #C4C4D4;
+  --green:        #00D27A;
+  --yellow:       #FFD700;
+  --cyan:         #00E5FF;
+  --grad-start:   #E10600;
+  --grad-end:     #FF6B35;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Titillium Web', 'Barlow Condensed', 'Rajdhani', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+.anim-fade-slide {
+  animation: fadeSlideIn 0.4s ease-out both;
+}
+
+.status-dot {
+  animation: pulseGlow 2.2s ease-in-out infinite;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray); }
