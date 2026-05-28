@@ -6,6 +6,7 @@ import CircuitComparison from './CircuitComparison'
 import TrainingCurves    from './TrainingCurves'
 import TrainingParams    from './TrainingParams'
 import MonteCarloChart   from './MonteCarloChart'
+import BahrainTrackAnim  from './BahrainTrackAnim'
 import f1Logo            from '../assets/f1_logo.png'
 import f1Car             from '../assets/esqueletof1.webp'
 
@@ -24,7 +25,7 @@ const C = {
   lightGray:  '#C4C4D4',
 }
 
-const TABS = ['OVERVIEW', 'CIRCUITOS', 'ENTRENAMIENTO', 'ESTRATEGIA']
+const TABS = ['OVERVIEW', 'CIRCUITOS', 'SIMULACIÓN', 'ENTRENAMIENTO', 'ESTRATEGIA']
 
 // KPI card (static, no gauge)
 function KpiCard({ label, value, sub, accent }) {
@@ -284,6 +285,21 @@ export default function Dashboard() {
                 />
               </div>
             </section>
+          </div>
+        )}
+
+        {/* ─── SIMULACIÓN ─── */}
+        {activeTab === 'SIMULACIÓN' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>
+                SIMULACIÓN EN VIVO · BAHRAIN GP
+              </div>
+              <div style={{ color: C.gray, fontSize: 11 }}>
+                Telemetría generada por el modelo GNN GAT v5.1 · desgaste de neumáticos, velocidad y sector en tiempo real
+              </div>
+            </div>
+            <BahrainTrackAnim />
           </div>
         )}
 

@@ -2,6 +2,7 @@ import bahrainMap   from '../assets/bahrain_map.png'
 import belgiumMap   from '../assets/belgium_map.png'
 import canadaMap    from '../assets/canada_map.png'
 import singaporeMap from '../assets/singapure_map.png'
+import abuDhabiMap  from '../assets/abu_dhabi_map.png'
 
 const C = {
   red:       '#E10600',
@@ -17,10 +18,19 @@ const C = {
 }
 
 const TRACK_MAPS = {
+  abu_dhabi: abuDhabiMap,
+  austria:   singaporeMap,
   bahrain:   bahrainMap,
   belgium:   belgiumMap,
   canada:    canadaMap,
   singapore: singaporeMap,
+  // circuitos sin imagen propia — rotación aleatoria, máx 2 usos por mapa
+  british:   belgiumMap,
+  dutch:     canadaMap,
+  hungary:   singaporeMap,
+  italy:     bahrainMap,
+  japan:     canadaMap,
+  spain:     abuDhabiMap,
 }
 
 function r2Color(r2) {
