@@ -6,7 +6,6 @@ const C = {
   orange:    '#FF6B35',
   yellow:    '#FFD700',
   green:     '#00D27A',
-  cyan:      '#00E5FF',
   gray:      '#8B8BA3',
   border:    '#2A2A40',
   surface:   '#1E1E2E',
@@ -22,43 +21,56 @@ const MC = tracksData.monte_carlo  // [{vuelta, p10, p50, p90}, ...]
 // lap 21 → P50=4.12s, lap 37 → P50=7.67s
 const PIT_LAPS           = [21, 37]
 const PIT_STOP_DURATION  = 2.4  // animation seconds at pit box
-const POST_PIT_PROGRESS  = 0.03 // circuit progress after pit exit (just past S/F)
+const POST_PIT_PROGRESS  = 0.04 // circuit progress after pit exit (onto main straight)
+
+const RACE_SPEED_FAST   = 0.66   // ~1.5s por vuelta en modo rápido
+const RACE_SPEED_NORMAL = 0.132  // ~7.5s por vuelta — énfasis pit
+const PIT_SLOW_WINDOW   = 2      // vueltas antes del pit donde se frena
+
+function getRaceSpeed(lap) {
+  for (const pitLap of PIT_LAPS) {
+    if (lap >= pitLap - PIT_SLOW_WINDOW && lap <= pitLap + 1) return RACE_SPEED_NORMAL
+  }
+  return RACE_SPEED_FAST
+}
 
 const COMPOUNDS      = ['MEDIUM', 'HARD', 'SOFT']
 const COMPOUND_COLORS = { MEDIUM: '#FFD700', HARD: '#CCCCCC', SOFT: '#E10600' }
 
-// Main circuit path — Bahrain (viewBox 0 0 560 315)
+// Main circuit path — Bahrain realistic outline (viewBox 0 0 560 315)
+// S/F straight at bottom, T1 hairpin left, outer loop upper-right, T10 hairpin, chicane
 const PATH_D = `
-  M 392,272
-  C 315,280 222,280 155,271
-  C 98,263 54,238 44,202
-  C 34,166 48,124 74,98
-  C 100,72 138,57 176,50
-  C 214,43 256,44 290,50
-  C 324,56 348,44 374,32
-  C 412,16 458,52 474,98
-  C 492,148 476,198 450,230
-  C 432,254 414,267 398,272
+  M 430,255
+  L 155,255
+  C 90,255 58,242 54,210
+  C 50,178 72,148 96,136
+  C 120,124 158,116 184,118
+  C 210,120 238,104 258,86
+  C 278,68 314,60 350,58
+  C 376,57 396,52 412,44
+  C 432,32 462,24 490,44
+  C 518,64 520,104 504,132
+  C 488,160 476,170 474,186
+  C 472,222 450,255 430,255
   Z
 `
 
-// Pit lane paths — run below the main straight at y≈298
-// Entry: S/F point (392,272) → curves right-down → across to pit box (280,298)
-// Exit:  pit box (280,298) → across left → curves up → circuit rejoin (148,271)
-const PIT_ENTRY_D = `M 392,272 C 415,272 428,278 429,290 C 430,300 405,300 280,300`
-const PIT_EXIT_D  = `M 280,300 C 205,300 155,300 148,291 C 141,282 143,272 148,271`
+// Pit lane — parallel to main straight at y=300, like real Bahrain
+// Entry: S/F (430,255) → sweeps down-right then left along y=300 to pit box (300,300)
+// Exit:  pit box (300,300) → left along y=300 then curves up → circuit rejoin (155,255)
+const PIT_ENTRY_D = `M 430,255 C 445,255 458,270 456,285 C 454,300 430,300 300,300`
+const PIT_EXIT_D  = `M 300,300 C 220,300 160,300 152,288 C 144,276 147,262 155,255`
 
 // Telemetry zones [progress, speed_kmh, gear, drs, sector, corner_name]
 const ZONES = [
   [0.00, 318, 8, true,  'S1', 'S/F Straight'],
-  [0.09, 92,  2, false, 'S1', 'Turn 1'],
-  [0.17, 170, 5, false, 'S1', 'Turn 2–3'],
-  [0.28, 290, 8, false, 'S2', 'Back Straight'],
-  [0.40, 240, 7, false, 'S2', 'Outer Loop T4'],
-  [0.52, 205, 6, false, 'S2', 'Outer Loop T7'],
-  [0.62, 88,  2, false, 'S3', 'Turn 10'],
-  [0.71, 150, 4, false, 'S3', 'Chicane T11–13'],
-  [0.82, 258, 7, true,  'S3', 'Turn 14–15'],
+  [0.11, 88,  2, false, 'S1', 'Turn 1'],
+  [0.20, 162, 5, false, 'S1', 'Turn 2–3'],
+  [0.32, 290, 8, false, 'S2', 'Back Straight'],
+  [0.45, 248, 7, false, 'S2', 'Outer Loop T4'],
+  [0.56, 215, 6, false, 'S2', 'Outer Loop T7'],
+  [0.65, 86,  2, false, 'S3', 'Turn 10'],
+  [0.80, 280, 7, true,  'S3', 'Turn 10–15'],
   [0.95, 318, 8, true,  'S1', 'S/F Straight'],
 ]
 
@@ -217,10 +229,10 @@ export default function BahrainTrackAnim() {
     progress: 0, lap: 1,
     phase: 'racing', pitTimer: 0,
     stopCount: 0, stint: 0,
+    fastForward: true,
   })
 
   useEffect(() => {
-    const RACE_SPEED      = 0.044  // laps/sec on circuit
     const PIT_LANE_SPEED  = 0.75   // fraction/sec on pit paths
 
     const tick = (ts) => {
@@ -233,7 +245,8 @@ export default function BahrainTrackAnim() {
 
       // ── racing ──────────────────────────────────────────
       if (phase === 'racing') {
-        progressRef.current += RACE_SPEED * dt
+        const raceSpeed = getRaceSpeed(lapRef.current)
+        progressRef.current += raceSpeed * dt
         if (progressRef.current >= 1) {
           progressRef.current -= 1
           lapRef.current++
@@ -280,7 +293,7 @@ export default function BahrainTrackAnim() {
       // ── pit stop ─────────────────────────────────────────
       } else if (phase === 'pit_stop') {
         pitTimerRef.current += dt
-        x = 280; y = 300; angle = 180
+        x = 300; y = 300; angle = 180
 
         if (pitTimerRef.current >= PIT_STOP_DURATION) {
           stopCountRef.current++
@@ -316,6 +329,7 @@ export default function BahrainTrackAnim() {
         stopCount: stopCountRef.current,
         stint: stintRef.current,
         features: getFeatureValues(lapRef.current, progressRef.current, stintRef.current),
+        fastForward: getRaceSpeed(lapRef.current) === RACE_SPEED_FAST && phaseRef.current === 'racing',
       })
 
       frameRef.current = requestAnimationFrame(tick)
@@ -325,7 +339,7 @@ export default function BahrainTrackAnim() {
     return () => cancelAnimationFrame(frameRef.current)
   }, [])
 
-  const { x, y, angle, progress, lap, phase, pitTimer, stopCount, stint, features = {} } = disp
+  const { x, y, angle, progress, lap, phase, pitTimer, stopCount, stint, features = {}, fastForward } = disp
 
   // Telemetry
   const telem = phase === 'racing'
@@ -345,9 +359,9 @@ export default function BahrainTrackAnim() {
   const compound      = COMPOUNDS[Math.min(stint, 2)]
   const nextCompound  = COMPOUNDS[Math.min(stint + 1, 2)]
   const compoundColor = COMPOUND_COLORS[compound]
-  const wearColor     = tireWear > 70 ? C.red : tireWear > 40 ? C.orange : C.yellow
+  const wearColor     = tireWear > 70 ? C.red : tireWear > 40 ? C.orange : tireWear > 20 ? C.yellow : C.green
 
-  const SC = { S1: C.cyan, S2: C.yellow, S3: C.orange }
+  const SC = { S1: C.green, S2: C.yellow, S3: C.orange }
 
   return (
     <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start', fontFamily: "'Titillium Web', sans-serif" }}>
@@ -374,32 +388,32 @@ export default function BahrainTrackAnim() {
           <path d={PIT_EXIT_D}  fill="none" stroke="rgba(255,215,0,0.5)"  strokeWidth={2} strokeDasharray="5 3" />
 
           {/* Pit box marker */}
-          <rect x={258} y={295} width={44} height={10} rx={2}
+          <rect x={278} y={294} width={44} height={10} rx={2}
             fill="rgba(255,215,0,0.1)" stroke="rgba(255,215,0,0.55)" strokeWidth={1} />
-          <text x={280} y={303} textAnchor="middle" fill={C.yellow}
+          <text x={300} y={302} textAnchor="middle" fill={C.yellow}
             fontSize={6.5} fontFamily="'Titillium Web'" fontWeight={700} letterSpacing={1.2}>
             BOX 1
           </text>
 
           {/* PIT IN / PIT OUT labels */}
-          <text x={398} y={288} fill="rgba(255,215,0,0.7)" fontSize={6.5} fontFamily="'Titillium Web'" fontWeight={700} letterSpacing={0.8}>PIT IN</text>
-          <text x={126} y={288} fill="rgba(255,215,0,0.7)" fontSize={6.5} fontFamily="'Titillium Web'" fontWeight={700} letterSpacing={0.8}>PIT OUT</text>
+          <text x={422} y={283} fill="rgba(255,215,0,0.7)" fontSize={6.5} fontFamily="'Titillium Web'" fontWeight={700} letterSpacing={0.8}>PIT IN</text>
+          <text x={138} y={283} fill="rgba(255,215,0,0.7)" fontSize={6.5} fontFamily="'Titillium Web'" fontWeight={700} letterSpacing={0.8}>PIT OUT</text>
 
           {/* S/F line */}
-          <line x1={387} y1={263} x2={396} y2={277} stroke={C.white} strokeWidth={3} strokeLinecap="round" />
-          <line x1={388} y1={264} x2={395} y2={276} stroke={C.red}   strokeWidth={1.5} strokeLinecap="round" />
+          <line x1={427} y1={248} x2={432} y2={260} stroke={C.white} strokeWidth={3} strokeLinecap="round" />
+          <line x1={428} y1={249} x2={431} y2={259} stroke={C.red}   strokeWidth={1.5} strokeLinecap="round" />
 
           {/* Sector dots */}
-          <circle cx={46}  cy={202} r={4} fill={SC.S1} />
-          <circle cx={450} cy={230} r={4} fill={SC.S2} />
-          <text x={20}  y={200} fill={SC.S1} fontSize={9} fontFamily="'Titillium Web'" fontWeight={700}>S1</text>
-          <text x={456} y={229} fill={SC.S2} fontSize={9} fontFamily="'Titillium Web'" fontWeight={700}>S2</text>
-          <text x={398} y={291} fill={SC.S3} fontSize={8} fontFamily="'Titillium Web'" fontWeight={700}>S3</text>
+          <circle cx={72}  cy={200} r={4} fill={SC.S1} />
+          <circle cx={480} cy={130} r={4} fill={SC.S2} />
+          <text x={22}  y={198} fill={SC.S1} fontSize={9} fontFamily="'Titillium Web'" fontWeight={700}>S1</text>
+          <text x={486} y={128} fill={SC.S2} fontSize={9} fontFamily="'Titillium Web'" fontWeight={700}>S2</text>
+          <text x={458} y={240} fill={SC.S3} fontSize={8} fontFamily="'Titillium Web'" fontWeight={700}>S3</text>
 
           {/* Corner labels */}
-          <text x={50}  y={96} fill={C.gray} fontSize={8} fontFamily="'Titillium Web'">T1</text>
-          <text x={366} y={26} fill={C.gray} fontSize={8} fontFamily="'Titillium Web'">T4–T7</text>
-          <text x={454} y={240} fill={C.gray} fontSize={8} fontFamily="'Titillium Web'">T10</text>
+          <text x={36}  y={214} fill={C.gray} fontSize={8} fontFamily="'Titillium Web'">T1</text>
+          <text x={462} y={30}  fill={C.gray} fontSize={8} fontFamily="'Titillium Web'">T4–T7</text>
+          <text x={460} y={254} fill={C.gray} fontSize={8} fontFamily="'Titillium Web'">T10</text>
 
           {/* Header info */}
           <text x={12} y={22} fill={C.white} fontSize={12} fontWeight={700} fontFamily="'Titillium Web'" letterSpacing={1.5}>
@@ -410,12 +424,29 @@ export default function BahrainTrackAnim() {
             {'  ·  Vuelta '}{lap}{ ' / 50'}
           </text>
 
+          {/* Velocidad de simulación */}
+          {fastForward ? (
+            <g>
+              <rect x={12} y={42} width={62} height={13} rx={2} fill="rgba(255,107,53,0.08)" stroke="rgba(255,107,53,0.35)" strokeWidth={0.8} />
+              <text x={43} y={52} textAnchor="middle" fill={C.orange} fontSize={7.5} fontWeight={700} fontFamily="'Titillium Web'" letterSpacing={0.8}>
+                ▶▶ SIMULACIÓN
+              </text>
+            </g>
+          ) : phase === 'racing' ? (
+            <g>
+              <rect x={12} y={42} width={68} height={13} rx={2} fill="rgba(255,107,53,0.1)" stroke="rgba(255,107,53,0.45)" strokeWidth={0.8} />
+              <text x={46} y={52} textAnchor="middle" fill={C.orange} fontSize={7.5} fontWeight={700} fontFamily="'Titillium Web'" letterSpacing={0.8}>
+                ▶ TIEMPO REAL
+              </text>
+            </g>
+          ) : null}
+
           {/* Active PIT STOP banner */}
           {phase === 'pit_stop' && (
             <>
-              <rect x={198} y={280} width={164} height={22} rx={3}
+              <rect x={192} y={278} width={216} height={20} rx={3}
                 fill="rgba(255,215,0,0.12)" stroke={C.yellow} strokeWidth={1} />
-              <text x={280} y={295} textAnchor="middle" fill={C.yellow} fontSize={10}
+              <text x={300} y={292} textAnchor="middle" fill={C.yellow} fontSize={10}
                 fontWeight={700} fontFamily="'Titillium Web'" letterSpacing={1.5}>
                 PARADA {stopCount + 1}  ·  {Math.max(0, PIT_STOP_DURATION - pitTimer).toFixed(1)}s
               </text>
@@ -424,7 +455,7 @@ export default function BahrainTrackAnim() {
 
           {/* Compound change banner during pit_stop */}
           {phase === 'pit_stop' && (
-            <text x={280} y={314} textAnchor="middle"
+            <text x={300} y={311} textAnchor="middle"
               fill="rgba(255,255,255,0.5)" fontSize={8} fontFamily="'Titillium Web'" letterSpacing={1}>
               {compound} → {nextCompound}
             </text>
@@ -623,7 +654,7 @@ export default function BahrainTrackAnim() {
             13 variables · SHAP importance
           </div>
           <div style={{ display: 'flex', gap: 4, marginTop: 5, fontSize: 8 }}>
-            {[['Neumático', C.red], ['Clima', C.cyan], ['Carrera', C.orange]].map(([l, c]) => (
+            {[['Neumático', C.red], ['Clima', C.yellow], ['Carrera', C.orange]].map(([l, c]) => (
               <span key={l} style={{ color: c, fontWeight: 700, letterSpacing: '0.06em' }}>■ {l}</span>
             ))}
           </div>
@@ -635,7 +666,7 @@ export default function BahrainTrackAnim() {
           <FeatureRow label="Compuesto"     value={features.compound || '—'} unit=""        shap={SHAP.compound} />
         </FeatureGroup>
 
-        <FeatureGroup title="Condiciones" color={C.cyan}>
+        <FeatureGroup title="Condiciones" color={C.yellow}>
           <FeatureRow label="Humedad"       value={features.humidity}   unit="%"   shap={SHAP.humidity} />
           <FeatureRow label="Presión"       value={features.pressure}   unit="hPa" shap={SHAP.pressure} />
           <FeatureRow label="Temp. Aire"    value={features.airTemp}    unit="°C"  shap={SHAP.airTemp} />

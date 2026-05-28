@@ -6,7 +6,6 @@ import {
 const C = {
   red:       '#E10600',
   orange:    '#FF6B35',
-  cyan:      '#00E5FF',
   yellow:    '#FFD700',
   green:     '#00D27A',
   gray:      '#8B8BA3',
@@ -81,7 +80,7 @@ export default function TrainingCurves({ history }) {
               label={{ value: 'LR ÷10', position: 'top', fill: C.yellow, fontSize: 9, fontFamily: "'Titillium Web', sans-serif" }} />
             <Line type="monotone" dataKey="train_loss" name="Train Loss" stroke={C.red}
               strokeWidth={2} dot={false} isAnimationActive animationDuration={800} animationEasing="ease-out" />
-            <Line type="monotone" dataKey="val_loss" name="Val Loss" stroke={C.cyan}
+            <Line type="monotone" dataKey="val_loss" name="Val Loss" stroke={C.orange}
               strokeWidth={2} strokeDasharray="4 2" dot={false} isAnimationActive animationDuration={800} animationEasing="ease-out" />
           </LineChart>
         </ResponsiveContainer>
@@ -125,7 +124,7 @@ export default function TrainingCurves({ history }) {
               label={{ value: '÷10', position: 'top', fill: C.yellow, fontSize: 9, fontFamily: "'Titillium Web', sans-serif" }} />
             <ReferenceLine x={260} stroke={C.yellow} strokeDasharray="4 2" strokeWidth={1}
               label={{ value: '÷10', position: 'top', fill: C.yellow, fontSize: 9, fontFamily: "'Titillium Web', sans-serif" }} />
-            <Line type="stepAfter" dataKey="lr" name="LR" stroke={C.cyan}
+            <Line type="stepAfter" dataKey="lr" name="LR" stroke={C.yellow}
               strokeWidth={2} dot={false} isAnimationActive animationDuration={800} animationEasing="ease-out" />
           </LineChart>
         </ResponsiveContainer>

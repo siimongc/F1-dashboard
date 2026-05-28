@@ -5,7 +5,6 @@ const C = {
   orange:    '#FF6B35',
   yellow:    '#FFD700',
   green:     '#00D27A',
-  cyan:      '#00E5FF',
   gray:      '#8B8BA3',
   surface:   '#1E1E2E',
   surfaceAlt:'#252538',
@@ -50,10 +49,10 @@ function arcPath(cx, cy, r, startDeg, endDeg) {
 }
 
 function arcColor(fill) {
-  if (fill > 0.85) return C.red
-  if (fill > 0.65) return C.orange
-  if (fill > 0.40) return C.yellow
-  return C.gray
+  if (fill > 0.85) return C.green
+  if (fill > 0.65) return C.yellow
+  if (fill > 0.40) return C.orange
+  return C.red
 }
 
 export default function GaugeCard({ label, value, prevValue, format = 'r2', maxScale, showPrev = false }) {

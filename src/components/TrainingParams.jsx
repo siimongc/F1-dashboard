@@ -1,6 +1,5 @@
 const C = {
   red:       '#E10600',
-  cyan:      '#00E5FF',
   yellow:    '#FFD700',
   green:     '#00D27A',
   orange:    '#FF6B35',
@@ -65,7 +64,7 @@ export default function TrainingParams({ params }) {
     },
     {
       title: 'OPTIMIZACIÓN',
-      color: C.cyan,
+      color: C.orange,
       items: [
         { label: 'Optimizer',      value: params.optimizer },
         { label: 'Loss Fn',        value: `Huber (δ=${params.huber_delta})` },

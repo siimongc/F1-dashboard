@@ -5,7 +5,8 @@ import TrackSelector     from './TrackSelector'
 import CircuitComparison from './CircuitComparison'
 import TrainingCurves    from './TrainingCurves'
 import TrainingParams    from './TrainingParams'
-import MonteCarloChart   from './MonteCarloChart'
+import MonteCarloChart        from './MonteCarloChart'
+import PitStrategyNarrative  from './PitStrategyNarrative'
 import BahrainTrackAnim  from './BahrainTrackAnim'
 import f1Logo            from '../assets/f1_logo.png'
 import f1Car             from '../assets/esqueletof1.webp'
@@ -15,7 +16,6 @@ const C = {
   orange:     '#FF6B35',
   green:      '#00D27A',
   yellow:     '#FFD700',
-  cyan:       '#00E5FF',
   gray:       '#8B8BA3',
   border:     '#2A2A40',
   bg:         '#15151E',
@@ -176,7 +176,7 @@ export default function Dashboard() {
       }}>
         <KpiCard label="GNN Avg R²"       value={meta.gnn_avg_r2.toFixed(3)}    accent={C.green}  sub="vs XGB −0.220" />
         <KpiCard label="GNN Avg MAE"      value={meta.gnn_avg_mae.toFixed(3)+'s'} accent={C.red}   sub="vs XGB 2.787s" />
-        <KpiCard label="MAE Reduction"    value={meta.mae_reduction_pct+'%'}     accent={C.cyan}   sub="XGB → GNN" />
+        <KpiCard label="MAE Reduction"    value={meta.mae_reduction_pct+'%'}     accent={C.green}  sub="XGB → GNN" />
         <KpiCard label="Total Graphs"     value={meta.total_graphs}              accent={C.yellow} sub="12 circuitos · LOCO CV" />
         <KpiCard label="Best Circuit"     value={meta.r2_above_09 + ' @ R²>0.9'} accent={C.orange} sub={meta.best_circuit + ' ' + meta.best_gnn_r2.toFixed(4)} />
       </div>
@@ -273,14 +273,14 @@ export default function Dashboard() {
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <InfoCard
                   label="Mejora MAE"
-                  value={'−' + maePct + '%'}
+                  value={maePct + '%'}
                   color={C.green}
                   sub={`${track.xgb.mae.toFixed(3)}s → ${track.gnn.mae.toFixed(3)}s`}
                 />
                 <InfoCard
                   label="Grafos de entrenamiento"
                   value={track.gnn.n_graphs}
-                  color={C.cyan}
+                  color={C.orange}
                   sub="sesiones de carrera"
                 />
               </div>
@@ -328,7 +328,15 @@ export default function Dashboard() {
 
         {/* ─── ESTRATEGIA ─── */}
         {activeTab === 'ESTRATEGIA' && (
-          <MonteCarloChart data={monte_carlo} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+            <PitStrategyNarrative />
+            <div>
+              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
+                DISTRIBUCIÓN PROBABILÍSTICA — BANDAS DE CONFIANZA MONTE CARLO
+              </div>
+              <MonteCarloChart data={monte_carlo} />
+            </div>
+          </div>
         )}
       </main>
 
