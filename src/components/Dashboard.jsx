@@ -1,243 +1,334 @@
 import { useState } from 'react'
-import tracksData from '../data/tracks.json'
-import MetricCard       from './MetricCard'
-import TrackSelector    from './TrackSelector'
-import ComparisonChart  from './ComparisonChart'
-import RadarPerformance from './RadarPerformance'
-import TrainingCurves   from './TrainingCurves'
-import TrainingParams   from './TrainingParams'
-import ConfusionMatrix  from './ConfusionMatrix'
+import tracksData        from '../data/tracks.json'
+import GaugeCard         from './GaugeCard'
+import TrackSelector     from './TrackSelector'
+import CircuitComparison from './CircuitComparison'
+import TrainingCurves    from './TrainingCurves'
+import TrainingParams    from './TrainingParams'
+import MonteCarloChart   from './MonteCarloChart'
+import f1Logo            from '../assets/f1_logo.png'
+import f1Car             from '../assets/esqueletof1.webp'
 
-const TABS = [
-  { id: 'overview',   label: 'OVERVIEW'         },
-  { id: 'training',   label: 'TRAINING'          },
-  { id: 'confusion',  label: 'CONFUSION MATRIX'  },
-]
+const C = {
+  red:        '#E10600',
+  orange:     '#FF6B35',
+  green:      '#00D27A',
+  yellow:     '#FFD700',
+  cyan:       '#00E5FF',
+  gray:       '#8B8BA3',
+  border:     '#2A2A40',
+  bg:         '#15151E',
+  surface:    '#1E1E2E',
+  surfaceAlt: '#252538',
+  white:      '#FFFFFF',
+  lightGray:  '#C4C4D4',
+}
 
-const KPI = [
-  { key: 'accuracy',  label: 'ACCURACY',  format: 'pct'                 },
-  { key: 'precision', label: 'PRECISION', format: 'pct'                 },
-  { key: 'recall',    label: 'RECALL',    format: 'pct'                 },
-  { key: 'f1_score',  label: 'F1 SCORE',  format: 'pct'                 },
-  { key: 'auc_roc',   label: 'AUC-ROC',   format: 'pct'                 },
-  { key: 'log_loss',  label: 'LOG LOSS',  format: 'dec', inverse: true  },
-]
+const TABS = ['OVERVIEW', 'CIRCUITOS', 'ENTRENAMIENTO', 'ESTRATEGIA']
 
-const today = new Date().toLocaleDateString('en-US', {
-  year: 'numeric', month: 'long', day: 'numeric',
-})
+// KPI card (static, no gauge)
+function KpiCard({ label, value, sub, accent }) {
+  return (
+    <div style={{
+      background: C.surfaceAlt,
+      border: `1px solid ${C.border}`,
+      borderRadius: 4,
+      padding: '14px 18px',
+      flex: '1 1 130px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 4,
+      fontFamily: "'Titillium Web', sans-serif",
+    }}>
+      <div style={{ color: accent || C.white, fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em' }}>
+        {value}
+      </div>
+      <div style={{ color: C.lightGray, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        {label}
+      </div>
+      {sub && <div style={{ color: C.gray, fontSize: 10 }}>{sub}</div>}
+    </div>
+  )
+}
+
+// Small info card
+function InfoCard({ label, value, color, sub }) {
+  return (
+    <div style={{
+      background: C.surfaceAlt,
+      border: `1px solid ${C.border}`,
+      borderRadius: 4,
+      padding: '12px 16px',
+      flex: '1 1 140px',
+      fontFamily: "'Titillium Web', sans-serif",
+      textAlign: 'center',
+    }}>
+      <div style={{ color: color || C.white, fontSize: 22, fontWeight: 900, lineHeight: 1 }}>{value}</div>
+      <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginTop: 5 }}>{label}</div>
+      {sub && <div style={{ color: C.gray, fontSize: 10, marginTop: 3 }}>{sub}</div>}
+    </div>
+  )
+}
 
 export default function Dashboard() {
-  const [trackId, setTrackId]   = useState('monaco')
-  const [activeTab, setTab]     = useState('overview')
+  const { meta, circuits, training, monte_carlo } = tracksData
+  const [activeTab, setActiveTab] = useState('OVERVIEW')
+  const [trackId, setTrackId]     = useState('british')
 
-  const track = tracksData.tracks.find((t) => t.id === trackId)
+  const track = circuits.find(c => c.id === trackId) || circuits[0]
 
-  const handleTrackChange = (id) => setTrackId(id)
-  const handleTabChange   = (id) => setTab(id)
+  const maePct = track
+    ? ((track.xgb.mae - track.gnn.mae) / track.xgb.mae * 100).toFixed(1)
+    : '—'
 
   return (
-    <div style={{ background: '#15151E', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-
-      {/* ── Top gradient stripe ── */}
+    <div style={{
+      minHeight: '100vh',
+      background: C.bg,
+      fontFamily: "'Titillium Web', sans-serif",
+      color: C.white,
+    }}>
+      {/* 3px gradient top bar */}
       <div style={{
-        height: '3px', flexShrink: 0,
-        background: 'linear-gradient(90deg, #E10600 0%, #FF6B35 100%)',
+        height: 3,
+        background: `linear-gradient(90deg, ${C.red} 0%, ${C.orange} 100%)`,
       }} />
 
-      {/* ── Header ── */}
+      {/* Header */}
       <header style={{
-        background: '#1E1E2E',
-        borderBottom: '1px solid #2A2A40',
-        padding: '14px 24px',
+        background: C.surface,
+        borderBottom: `1px solid ${C.border}`,
+        padding: '12px 24px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
+        gap: 20,
+        flexWrap: 'wrap',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #E10600, #FF6B35)',
-            width: '42px', height: '42px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '4px',
-            fontSize: '13px', fontWeight: '900', letterSpacing: '1px', color: '#fff',
-            flexShrink: 0,
-          }}>
-            ML
-          </div>
+        {/* F1 official logo badge */}
+        <div style={{
+          background: C.white,
+          borderRadius: 3,
+          padding: '3px 7px',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          zIndex: 1,
+        }}>
+          <img src={f1Logo} alt="Formula 1" style={{ display: 'block', height: 18, width: 'auto' }} />
+        </div>
 
-          <div>
-            <div style={{
-              fontSize: '20px', fontWeight: '700', letterSpacing: '1.5px',
-              color: '#FFFFFF', lineHeight: 1, textTransform: 'uppercase',
-            }}>
-              Model Performance Telemetry
-            </div>
-            <div style={{
-              fontSize: '11px', letterSpacing: '2px', color: '#8B8BA3',
-              marginTop: '4px', textTransform: 'uppercase',
-            }}>
-              {track.model} · {track.name}
-            </div>
+        {/* Title block */}
+        <div style={{ flex: 1, minWidth: 200, zIndex: 1 }}>
+          <div style={{
+            fontSize: 18,
+            fontWeight: 900,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: C.white,
+            lineHeight: 1,
+          }}>
+            APEXSTRATEGY AI
+          </div>
+          <div style={{ color: C.gray, fontSize: 11, marginTop: 3, letterSpacing: '0.06em' }}>
+            GNN GAT v5.1 · Predicción Degradación Neumáticos
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="status-dot" style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            background: '#00D27A',
-            boxShadow: '0 0 8px #00D27A, 0 0 16px rgba(0,210,122,0.4)',
+        {/* Blueprint F1 car — ghost watermark */}
+        <img
+          src={f1Car}
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            right: 120,
+            top: '50%',
+            transform: 'translateY(-50%) rotate(-5deg)',
+            height: 170,
+            opacity: 0.08,
+            filter: 'invert(1) brightness(1.4)',
+            pointerEvents: 'none',
+            userSelect: 'none',
+            zIndex: 0,
+          }}
+        />
+
+        {/* Status dot */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0, zIndex: 1 }}>
+          <span className="status-dot" style={{
+            display: 'inline-block', width: 8, height: 8,
+            borderRadius: '50%', background: C.green,
+            boxShadow: `0 0 6px ${C.green}`,
           }} />
-          <span style={{
-            fontSize: '11px', fontWeight: '600', letterSpacing: '2px',
-            color: '#00D27A', textTransform: 'uppercase',
-          }}>
-            MODEL OPTIMIZED
-          </span>
+          <span style={{ color: C.green, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em' }}>LIVE</span>
         </div>
       </header>
 
-      {/* ── Track selector ── */}
+      {/* Global KPI Row */}
       <div style={{
-        background: '#1E1E2E',
-        borderBottom: '1px solid #2A2A40',
-        padding: '10px 24px',
-        flexShrink: 0,
-      }}>
-        <TrackSelector
-          tracks={tracksData.tracks}
-          selected={trackId}
-          onChange={handleTrackChange}
-        />
-      </div>
-
-      {/* ── Tab navigation ── */}
-      <div style={{
-        background: '#1E1E2E',
-        borderBottom: '1px solid #2A2A40',
-        padding: '0 24px',
+        padding: '16px 24px 0',
         display: 'flex',
-        flexShrink: 0,
+        gap: 12,
+        flexWrap: 'wrap',
       }}>
-        {TABS.map((tab) => {
-          const active = tab.id === activeTab
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              style={{
-                background: 'none',
-                border: 'none',
-                borderBottom: active ? '3px solid #E10600' : '3px solid transparent',
-                color: active ? '#FFFFFF' : '#8B8BA3',
-                padding: '13px 20px',
-                fontSize: '11px', fontWeight: '700', letterSpacing: '2px',
-                cursor: 'pointer',
-                fontFamily: "'Titillium Web', sans-serif",
-                textTransform: 'uppercase',
-                transition: 'color 0.15s, border-color 0.15s',
-              }}
-            >
-              {tab.label}
-            </button>
-          )
-        })}
+        <KpiCard label="GNN Avg R²"       value={meta.gnn_avg_r2.toFixed(3)}    accent={C.green}  sub="vs XGB −0.220" />
+        <KpiCard label="GNN Avg MAE"      value={meta.gnn_avg_mae.toFixed(3)+'s'} accent={C.red}   sub="vs XGB 2.787s" />
+        <KpiCard label="MAE Reduction"    value={meta.mae_reduction_pct+'%'}     accent={C.cyan}   sub="XGB → GNN" />
+        <KpiCard label="Total Graphs"     value={meta.total_graphs}              accent={C.yellow} sub="12 circuitos · LOCO CV" />
+        <KpiCard label="Best Circuit"     value={meta.r2_above_09 + ' @ R²>0.9'} accent={C.orange} sub={meta.best_circuit + ' ' + meta.best_gnn_r2.toFixed(4)} />
       </div>
 
-      {/* ── Tab content ── */}
+      {/* Tabs */}
+      <nav style={{
+        padding: '16px 24px 0',
+        display: 'flex',
+        gap: 2,
+        borderBottom: `1px solid ${C.border}`,
+        marginTop: 16,
+      }}>
+        {TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              background: activeTab === tab ? C.red : 'transparent',
+              border: 'none',
+              borderRadius: '2px 2px 0 0',
+              padding: '8px 20px',
+              color: activeTab === tab ? C.white : C.gray,
+              fontFamily: "'Titillium Web', sans-serif",
+              fontWeight: 700,
+              fontSize: 11,
+              letterSpacing: '0.1em',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              outline: 'none',
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      {/* Tab content */}
       <main
-        key={`${trackId}::${activeTab}`}
+        key={trackId + activeTab}
         className="anim-fade-slide"
-        style={{ padding: '24px', flex: 1 }}
+        style={{ padding: '24px' }}
       >
+        {/* ─── OVERVIEW ─── */}
+        {activeTab === 'OVERVIEW' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <section>
+              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
+                SELECCIONAR CIRCUITO
+              </div>
+              <TrackSelector circuits={circuits} selected={trackId} onSelect={setTrackId} />
+            </section>
 
-        {activeTab === 'overview' && (
-          <div>
-            {/* KPI grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))',
-              gap: '14px',
-              marginBottom: '20px',
-            }}>
-              {KPI.map((m) => (
-                <MetricCard
-                  key={`${trackId}-${m.key}`}
-                  label={m.label}
-                  value={track.after[m.key]}
-                  prevValue={track.before[m.key]}
-                  format={m.format}
-                  inverse={m.inverse}
+            <section>
+              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
+                {track.flag} {track.name.toUpperCase()} — MÉTRICAS DEL MODELO
+              </div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <GaugeCard
+                  key={trackId + 'gnn_r2'}
+                  label="R² GNN GAT v5.1"
+                  value={track.gnn.r2}
+                  prevValue={track.xgb.r2}
+                  format="r2"
+                  showPrev
                 />
-              ))}
-            </div>
+                <GaugeCard
+                  key={trackId + 'gnn_mae'}
+                  label="MAE GNN (s)"
+                  value={track.gnn.mae}
+                  prevValue={track.xgb.mae}
+                  format="mae"
+                  maxScale={2.0}
+                  showPrev
+                />
+                <GaugeCard
+                  key={trackId + 'xgb_r2'}
+                  label="R² XGBoost"
+                  value={track.xgb.r2}
+                  format="r2"
+                  showPrev={false}
+                />
+                <GaugeCard
+                  key={trackId + 'xgb_mae'}
+                  label="MAE XGBoost (s)"
+                  value={track.xgb.mae}
+                  format="mae"
+                  maxScale={9.0}
+                  showPrev={false}
+                />
+              </div>
+            </section>
 
-            {/* Charts */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
-              gap: '16px',
-            }}>
-              <ComparisonChart
-                key={`cmp-${trackId}`}
-                before={track.before}
-                after={track.after}
-              />
-              <RadarPerformance
-                key={`radar-${trackId}`}
-                before={track.before}
-                after={track.after}
-              />
-            </div>
+            <section>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <InfoCard
+                  label="Mejora MAE"
+                  value={'−' + maePct + '%'}
+                  color={C.green}
+                  sub={`${track.xgb.mae.toFixed(3)}s → ${track.gnn.mae.toFixed(3)}s`}
+                />
+                <InfoCard
+                  label="Grafos de entrenamiento"
+                  value={track.gnn.n_graphs}
+                  color={C.cyan}
+                  sub="sesiones de carrera"
+                />
+              </div>
+            </section>
           </div>
         )}
 
-        {activeTab === 'training' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <TrainingCurves
-              key={`curves-${trackId}`}
-              history={track.training.history}
-            />
-            <TrainingParams params={track.training.params} />
+        {/* ─── CIRCUITOS ─── */}
+        {activeTab === 'CIRCUITOS' && (
+          <CircuitComparison circuits={circuits} />
+        )}
+
+        {/* ─── ENTRENAMIENTO ─── */}
+        {activeTab === 'ENTRENAMIENTO' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+            <section>
+              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
+                HISTORIAL DE ENTRENAMIENTO
+              </div>
+              <TrainingCurves history={training.history} />
+            </section>
+            <section>
+              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
+                PARÁMETROS DEL MODELO
+              </div>
+              <TrainingParams params={training.params} />
+            </section>
           </div>
         )}
 
-        {activeTab === 'confusion' && (
-          <ConfusionMatrix
-            key={`cm-${trackId}`}
-            confusionBefore={track.confusion_before}
-            confusionAfter={track.confusion_after}
-            before={track.before}
-            after={track.after}
-          />
+        {/* ─── ESTRATEGIA ─── */}
+        {activeTab === 'ESTRATEGIA' && (
+          <MonteCarloChart data={monte_carlo} />
         )}
       </main>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <footer style={{
-        background: '#1E1E2E',
-        borderTop: '1px solid #2A2A40',
-        padding: '10px 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexShrink: 0,
+        borderTop: `1px solid ${C.border}`,
+        padding: '12px 24px',
+        textAlign: 'center',
+        color: C.gray,
+        fontSize: 10,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        marginTop: 'auto',
       }}>
-        <span style={{
-          fontSize: '10px', fontWeight: '700', letterSpacing: '2px',
-          color: '#8B8BA3', textTransform: 'uppercase',
-        }}>
-          ML TELEMETRY DASHBOARD v1.0
-        </span>
-        <span style={{
-          fontSize: '10px', letterSpacing: '1px',
-          color: '#8B8BA3', textTransform: 'uppercase',
-        }}>
-          LAST UPDATED: {today}
-        </span>
+        APEXSTRATEGY AI · GNN GAT v5.1 · MAESTRÍA EN CIENCIA DE DATOS · EAFIT 2026
       </footer>
-
     </div>
   )
 }

@@ -1,89 +1,118 @@
 {
-  "tracks": [
-    {
-      "id": "monaco",
-      "name": "Monaco GP",
-      "model": "XGBoost v1",
-      "before": {
-        "accuracy": 0.72, "precision": 0.68, "recall": 0.65,
-        "f1_score": 0.66, "auc_roc": 0.74, "log_loss": 0.58,
-        "mse": 0.31, "r2": 0.61
-      },
-      "after": {
-        "accuracy": 0.94, "precision": 0.92, "recall": 0.91,
-        "f1_score": 0.915, "auc_roc": 0.97, "log_loss": 0.12,
-        "mse": 0.07, "r2": 0.93
-      },
-      "confusion_before": { "tp": 128, "fp": 62, "fn": 70, "tn": 240 },
-      "confusion_after": { "tp": 185, "fp": 16, "fn": 18, "tn": 281 },
-      "training": {
-        "params": { "lr": 0.001, "batch_size": 32, "epochs": 30, "optimizer": "Adam", "dropout": 0.3, "architecture": "XGBoost", "features": 42, "train_size": 8500 },
-        "history": [
-          { "epoch": 1, "train_loss": 0.82, "val_loss": 0.85, "train_acc": 0.55, "val_acc": 0.52 },
-          { "epoch": 5, "train_loss": 0.61, "val_loss": 0.65, "train_acc": 0.68, "val_acc": 0.64 },
-          { "epoch": 10, "train_loss": 0.42, "val_loss": 0.48, "train_acc": 0.78, "val_acc": 0.74 },
-          { "epoch": 15, "train_loss": 0.28, "val_loss": 0.35, "train_acc": 0.85, "val_acc": 0.82 },
-          { "epoch": 20, "train_loss": 0.18, "val_loss": 0.22, "train_acc": 0.91, "val_acc": 0.88 },
-          { "epoch": 25, "train_loss": 0.12, "val_loss": 0.15, "train_acc": 0.94, "val_acc": 0.92 },
-          { "epoch": 30, "train_loss": 0.08, "val_loss": 0.13, "train_acc": 0.96, "val_acc": 0.94 }
-        ]
-      }
+  "meta": {
+    "xgb_avg_r2": -0.220,
+    "gnn_avg_r2": 0.873,
+    "xgb_avg_mae": 2.787,
+    "gnn_avg_mae": 0.733,
+    "mae_reduction_pct": 73.7,
+    "total_graphs": 277,
+    "r2_above_09": 8,
+    "best_circuit": "British GP",
+    "best_gnn_r2": 0.9564
+  },
+  "circuits": [
+    { "id": "abu_dhabi", "name": "Abu Dhabi GP",  "flag": "🇦🇪", "code": "ABU", "xgb": { "mae": 1.3386, "r2": 0.4446  }, "gnn": { "mae": 0.4663, "r2": 0.9271, "n_graphs": 18 } },
+    { "id": "austria",   "name": "Austrian GP",   "flag": "🇦🇹", "code": "AUT", "xgb": { "mae": 1.7895, "r2": 0.2674  }, "gnn": { "mae": 0.7585, "r2": 0.9550, "n_graphs": 31 } },
+    { "id": "bahrain",   "name": "Bahrain GP",    "flag": "🇧🇭", "code": "BAH", "xgb": { "mae": 2.6421, "r2": 0.2205  }, "gnn": { "mae": 0.5714, "r2": 0.9282, "n_graphs": 16 } },
+    { "id": "belgium",   "name": "Belgian GP",    "flag": "🇧🇪", "code": "BEL", "xgb": { "mae": 3.2869, "r2": -1.0054 }, "gnn": { "mae": 0.5192, "r2": 0.9208, "n_graphs": 16 } },
+    { "id": "british",   "name": "British GP",    "flag": "🇬🇧", "code": "GBR", "xgb": { "mae": 2.9421, "r2": 0.2191  }, "gnn": { "mae": 0.8580, "r2": 0.9564, "n_graphs": 19 } },
+    { "id": "canada",    "name": "Canadian GP",   "flag": "🇨🇦", "code": "CAN", "xgb": { "mae": 3.5102, "r2": -0.4641 }, "gnn": { "mae": 1.2074, "r2": 0.9461, "n_graphs": 26 } },
+    { "id": "dutch",     "name": "Dutch GP",      "flag": "🇳🇱", "code": "NED", "xgb": { "mae": 3.1262, "r2": -0.0452 }, "gnn": { "mae": 0.6369, "r2": 0.8631, "n_graphs": 25 } },
+    { "id": "hungary",   "name": "Hungarian GP",  "flag": "🇭🇺", "code": "HUN", "xgb": { "mae": 0.8978, "r2": 0.5571  }, "gnn": { "mae": 0.7631, "r2": 0.7234, "n_graphs": 26 } },
+    { "id": "italy",     "name": "Italian GP",    "flag": "🇮🇹", "code": "ITA", "xgb": { "mae": 1.2050, "r2": 0.4606  }, "gnn": { "mae": 0.8871, "r2": 0.5887, "n_graphs": 20 } },
+    { "id": "japan",     "name": "Japanese GP",   "flag": "🇯🇵", "code": "JPN", "xgb": { "mae": 2.8786, "r2": -0.2200 }, "gnn": { "mae": 0.7045, "r2": 0.9107, "n_graphs": 22 } },
+    { "id": "singapore", "name": "Singapore GP",  "flag": "🇸🇬", "code": "SGP", "xgb": { "mae": 7.4848, "r2": -3.3561 }, "gnn": { "mae": 0.8444, "r2": 0.9143, "n_graphs": 26 } },
+    { "id": "spain",     "name": "Spanish GP",    "flag": "🇪🇸", "code": "ESP", "xgb": { "mae": 2.3474, "r2": 0.2787  }, "gnn": { "mae": 0.5749, "r2": 0.8463, "n_graphs": 32 } }
+  ],
+  "training": {
+    "params": {
+      "architecture": "GAT v5.1",
+      "optimizer": "Adam",
+      "loss": "Huber",
+      "huber_delta": 1.0,
+      "lr_inicial": 0.001,
+      "lr_schedule": "Step Decay ×2",
+      "epochs": 300,
+      "hidden_dim": 64,
+      "gat_heads": 4,
+      "gnn_layers": 3,
+      "dropout": 0.1,
+      "circuits": 12,
+      "total_graphs": 277
     },
-    {
-      "id": "silverstone",
-      "name": "Silverstone GP",
-      "model": "Random Forest v2",
-      "before": {
-        "accuracy": 0.78, "precision": 0.75, "recall": 0.72,
-        "f1_score": 0.73, "auc_roc": 0.80, "log_loss": 0.45,
-        "mse": 0.24, "r2": 0.70
-      },
-      "after": {
-        "accuracy": 0.91, "precision": 0.89, "recall": 0.88,
-        "f1_score": 0.885, "auc_roc": 0.95, "log_loss": 0.18,
-        "mse": 0.10, "r2": 0.90
-      },
-      "confusion_before": { "tp": 144, "fp": 48, "fn": 56, "tn": 252 },
-      "confusion_after": { "tp": 176, "fp": 22, "fn": 24, "tn": 278 },
-      "training": {
-        "params": { "lr": 0.0005, "batch_size": 64, "epochs": 25, "optimizer": "AdamW", "dropout": 0.25, "architecture": "Random Forest", "features": 38, "train_size": 12000 },
-        "history": [
-          { "epoch": 1, "train_loss": 0.75, "val_loss": 0.78, "train_acc": 0.60, "val_acc": 0.58 },
-          { "epoch": 5, "train_loss": 0.55, "val_loss": 0.60, "train_acc": 0.72, "val_acc": 0.69 },
-          { "epoch": 10, "train_loss": 0.38, "val_loss": 0.44, "train_acc": 0.81, "val_acc": 0.78 },
-          { "epoch": 15, "train_loss": 0.25, "val_loss": 0.32, "train_acc": 0.87, "val_acc": 0.84 },
-          { "epoch": 20, "train_loss": 0.16, "val_loss": 0.21, "train_acc": 0.91, "val_acc": 0.89 },
-          { "epoch": 25, "train_loss": 0.11, "val_loss": 0.18, "train_acc": 0.93, "val_acc": 0.91 }
-        ]
-      }
-    },
-    {
-      "id": "monza",
-      "name": "Monza GP",
-      "model": "Neural Net v3",
-      "before": {
-        "accuracy": 0.65, "precision": 0.60, "recall": 0.58,
-        "f1_score": 0.59, "auc_roc": 0.68, "log_loss": 0.72,
-        "mse": 0.40, "r2": 0.52
-      },
-      "after": {
-        "accuracy": 0.96, "precision": 0.95, "recall": 0.94,
-        "f1_score": 0.945, "auc_roc": 0.99, "log_loss": 0.08,
-        "mse": 0.04, "r2": 0.96
-      },
-      "confusion_before": { "tp": 116, "fp": 78, "fn": 84, "tn": 222 },
-      "confusion_after": { "tp": 192, "fp": 10, "fn": 12, "tn": 286 },
-      "training": {
-        "params": { "lr": 0.0001, "batch_size": 16, "epochs": 50, "optimizer": "SGD + Momentum", "dropout": 0.4, "architecture": "Deep NN (4 layers)", "features": 56, "train_size": 15000 },
-        "history": [
-          { "epoch": 1, "train_loss": 0.90, "val_loss": 0.92, "train_acc": 0.48, "val_acc": 0.45 },
-          { "epoch": 10, "train_loss": 0.65, "val_loss": 0.70, "train_acc": 0.62, "val_acc": 0.58 },
-          { "epoch": 20, "train_loss": 0.40, "val_loss": 0.48, "train_acc": 0.78, "val_acc": 0.74 },
-          { "epoch": 30, "train_loss": 0.22, "val_loss": 0.30, "train_acc": 0.88, "val_acc": 0.85 },
-          { "epoch": 40, "train_loss": 0.10, "val_loss": 0.15, "train_acc": 0.95, "val_acc": 0.93 },
-          { "epoch": 50, "train_loss": 0.05, "val_loss": 0.09, "train_acc": 0.97, "val_acc": 0.96 }
-        ]
-      }
-    }
+    "history": [
+      { "epoch": 1,   "train_loss": 1.18, "val_loss": 1.05, "val_mae": 1.52, "lr": 0.001   },
+      { "epoch": 10,  "train_loss": 0.91, "val_loss": 0.84, "val_mae": 1.43, "lr": 0.001   },
+      { "epoch": 25,  "train_loss": 0.78, "val_loss": 0.73, "val_mae": 1.32, "lr": 0.001   },
+      { "epoch": 40,  "train_loss": 0.72, "val_loss": 0.68, "val_mae": 1.24, "lr": 0.001   },
+      { "epoch": 55,  "train_loss": 0.66, "val_loss": 0.63, "val_mae": 1.16, "lr": 0.001   },
+      { "epoch": 70,  "train_loss": 0.62, "val_loss": 0.59, "val_mae": 1.10, "lr": 0.001   },
+      { "epoch": 85,  "train_loss": 0.58, "val_loss": 0.56, "val_mae": 1.05, "lr": 0.001   },
+      { "epoch": 100, "train_loss": 0.56, "val_loss": 0.54, "val_mae": 1.01, "lr": 0.001   },
+      { "epoch": 115, "train_loss": 0.53, "val_loss": 0.52, "val_mae": 0.97, "lr": 0.001   },
+      { "epoch": 130, "train_loss": 0.52, "val_loss": 0.51, "val_mae": 0.95, "lr": 0.001   },
+      { "epoch": 145, "train_loss": 0.50, "val_loss": 0.49, "val_mae": 0.93, "lr": 0.001   },
+      { "epoch": 155, "train_loss": 0.48, "val_loss": 0.47, "val_mae": 0.91, "lr": 0.0001  },
+      { "epoch": 170, "train_loss": 0.46, "val_loss": 0.46, "val_mae": 0.89, "lr": 0.0001  },
+      { "epoch": 190, "train_loss": 0.45, "val_loss": 0.44, "val_mae": 0.87, "lr": 0.0001  },
+      { "epoch": 210, "train_loss": 0.44, "val_loss": 0.44, "val_mae": 0.85, "lr": 0.0001  },
+      { "epoch": 230, "train_loss": 0.43, "val_loss": 0.43, "val_mae": 0.83, "lr": 0.0001  },
+      { "epoch": 250, "train_loss": 0.43, "val_loss": 0.42, "val_mae": 0.82, "lr": 0.0001  },
+      { "epoch": 260, "train_loss": 0.42, "val_loss": 0.41, "val_mae": 0.81, "lr": 0.00001 },
+      { "epoch": 280, "train_loss": 0.42, "val_loss": 0.41, "val_mae": 0.80, "lr": 0.00001 },
+      { "epoch": 300, "train_loss": 0.42, "val_loss": 0.40, "val_mae": 0.80, "lr": 0.00001 }
+    ]
+  },
+  "monte_carlo": [
+    { "vuelta": 1,  "p10": 0.01,   "p50": 0.01,    "p90": 0.01    },
+    { "vuelta": 2,  "p10": 0.02,   "p50": 0.02,    "p90": 0.02    },
+    { "vuelta": 3,  "p10": 0.03,   "p50": 0.03,    "p90": 0.03    },
+    { "vuelta": 4,  "p10": 0.04,   "p50": 0.04,    "p90": 0.5488  },
+    { "vuelta": 5,  "p10": 0.05,   "p50": 0.05,    "p90": 0.9129  },
+    { "vuelta": 6,  "p10": 0.06,   "p50": 0.4173,  "p90": 1.4649  },
+    { "vuelta": 7,  "p10": 0.07,   "p50": 0.7032,  "p90": 1.8419  },
+    { "vuelta": 8,  "p10": 0.08,   "p50": 0.9239,  "p90": 2.2602  },
+    { "vuelta": 9,  "p10": 0.2151, "p50": 1.2182,  "p90": 2.7174  },
+    { "vuelta": 10, "p10": 0.4030, "p50": 1.5633,  "p90": 3.1053  },
+    { "vuelta": 11, "p10": 0.5950, "p50": 1.8489,  "p90": 3.4206  },
+    { "vuelta": 12, "p10": 0.7313, "p50": 2.1493,  "p90": 3.7798  },
+    { "vuelta": 13, "p10": 0.9453, "p50": 2.3783,  "p90": 4.2422  },
+    { "vuelta": 14, "p10": 1.1557, "p50": 2.5921,  "p90": 4.4599  },
+    { "vuelta": 15, "p10": 1.2378, "p50": 2.7049,  "p90": 4.6342  },
+    { "vuelta": 16, "p10": 1.3402, "p50": 2.8734,  "p90": 4.9150  },
+    { "vuelta": 17, "p10": 1.4549, "p50": 3.0742,  "p90": 5.1460  },
+    { "vuelta": 18, "p10": 1.6214, "p50": 3.1991,  "p90": 5.3871  },
+    { "vuelta": 19, "p10": 1.7868, "p50": 3.4650,  "p90": 5.5922  },
+    { "vuelta": 20, "p10": 1.9679, "p50": 3.7333,  "p90": 6.0647  },
+    { "vuelta": 21, "p10": 2.2041, "p50": 4.1175,  "p90": 6.4185  },
+    { "vuelta": 22, "p10": 2.3806, "p50": 4.3491,  "p90": 6.7267  },
+    { "vuelta": 23, "p10": 2.4829, "p50": 4.5184,  "p90": 7.0436  },
+    { "vuelta": 24, "p10": 2.5893, "p50": 4.7118,  "p90": 7.2727  },
+    { "vuelta": 25, "p10": 2.7047, "p50": 4.8139,  "p90": 7.3798  },
+    { "vuelta": 26, "p10": 2.8322, "p50": 4.9705,  "p90": 7.5717  },
+    { "vuelta": 27, "p10": 3.0457, "p50": 5.3054,  "p90": 7.9013  },
+    { "vuelta": 28, "p10": 3.1944, "p50": 5.5249,  "p90": 8.0968  },
+    { "vuelta": 29, "p10": 3.3428, "p50": 5.6749,  "p90": 8.3690  },
+    { "vuelta": 30, "p10": 3.5307, "p50": 5.9865,  "p90": 8.6036  },
+    { "vuelta": 31, "p10": 3.8280, "p50": 6.1903,  "p90": 9.1374  },
+    { "vuelta": 32, "p10": 3.9816, "p50": 6.4551,  "p90": 9.3981  },
+    { "vuelta": 33, "p10": 4.1620, "p50": 6.6553,  "p90": 9.7145  },
+    { "vuelta": 34, "p10": 4.3779, "p50": 6.9143,  "p90": 9.9293  },
+    { "vuelta": 35, "p10": 4.4991, "p50": 7.2007,  "p90": 10.1623 },
+    { "vuelta": 36, "p10": 4.6304, "p50": 7.4305,  "p90": 10.5494 },
+    { "vuelta": 37, "p10": 4.8651, "p50": 7.6702,  "p90": 10.8011 },
+    { "vuelta": 38, "p10": 5.0293, "p50": 7.9164,  "p90": 11.1284 },
+    { "vuelta": 39, "p10": 5.2916, "p50": 8.0997,  "p90": 11.4507 },
+    { "vuelta": 40, "p10": 5.4215, "p50": 8.4070,  "p90": 11.6668 },
+    { "vuelta": 41, "p10": 5.5403, "p50": 8.5721,  "p90": 11.8758 },
+    { "vuelta": 42, "p10": 5.8775, "p50": 8.8489,  "p90": 12.2043 },
+    { "vuelta": 43, "p10": 5.9740, "p50": 9.1094,  "p90": 12.4984 },
+    { "vuelta": 44, "p10": 6.4170, "p50": 9.6005,  "p90": 12.9889 },
+    { "vuelta": 45, "p10": 6.5611, "p50": 9.8306,  "p90": 13.2111 },
+    { "vuelta": 46, "p10": 6.7688, "p50": 10.0426, "p90": 13.4789 },
+    { "vuelta": 47, "p10": 7.0286, "p50": 10.3140, "p90": 13.9222 },
+    { "vuelta": 48, "p10": 7.3930, "p50": 10.7263, "p90": 14.4707 },
+    { "vuelta": 49, "p10": 7.6246, "p50": 11.0208, "p90": 14.8559 },
+    { "vuelta": 50, "p10": 7.7615, "p50": 11.3882, "p90": 15.3427 }
   ]
 }

@@ -1,55 +1,97 @@
+const C = {
+  red:       '#E10600',
+  cyan:      '#00E5FF',
+  yellow:    '#FFD700',
+  green:     '#00D27A',
+  orange:    '#FF6B35',
+  gray:      '#8B8BA3',
+  border:    '#2A2A40',
+  surfaceAlt:'#252538',
+  white:     '#FFFFFF',
+  lightGray: '#C4C4D4',
+}
+
+function ParamGroup({ title, color, items }) {
+  return (
+    <div style={{
+      background: C.surfaceAlt,
+      border: `1px solid ${C.border}`,
+      borderRadius: 4,
+      padding: '14px 16px',
+      flex: '1 1 220px',
+    }}>
+      <div style={{
+        color: color,
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        marginBottom: 12,
+        borderBottom: `1px solid ${C.border}`,
+        paddingBottom: 6,
+        fontFamily: "'Titillium Web', sans-serif",
+      }}>
+        {title}
+      </div>
+      {items.map(({ label, value }) => (
+        <div key={label} style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 8,
+          gap: 12,
+          fontFamily: "'Titillium Web', sans-serif",
+        }}>
+          <span style={{ color: C.gray, fontSize: 11, letterSpacing: '0.04em', flexShrink: 0 }}>{label}</span>
+          <span style={{ color: C.white, fontSize: 12, fontWeight: 700, textAlign: 'right' }}>{value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function TrainingParams({ params }) {
-  const rows = [
-    { label: 'ARCHITECTURE',     value: params.architecture },
-    { label: 'OPTIMIZER',        value: params.optimizer },
-    { label: 'LEARNING RATE',    value: params.lr },
-    { label: 'BATCH SIZE',       value: params.batch_size },
-    { label: 'EPOCHS',           value: params.epochs },
-    { label: 'DROPOUT',          value: params.dropout },
-    { label: 'FEATURES',         value: params.features },
-    { label: 'TRAINING SAMPLES', value: params.train_size?.toLocaleString() },
+  const groups = [
+    {
+      title: 'ARQUITECTURA',
+      color: C.red,
+      items: [
+        { label: 'Modelo',         value: params.architecture },
+        { label: 'Hidden Dim',     value: params.hidden_dim },
+        { label: 'Attn Heads',     value: params.gat_heads },
+        { label: 'GNN Layers',     value: params.gnn_layers },
+        { label: 'Dropout',        value: params.dropout },
+      ],
+    },
+    {
+      title: 'OPTIMIZACIÓN',
+      color: C.cyan,
+      items: [
+        { label: 'Optimizer',      value: params.optimizer },
+        { label: 'Loss Fn',        value: `Huber (δ=${params.huber_delta})` },
+        { label: 'LR Inicial',     value: '1×10⁻³' },
+        { label: 'LR Schedule',    value: params.lr_schedule },
+        { label: 'Epochs',         value: params.epochs },
+      ],
+    },
+    {
+      title: 'DATOS',
+      color: C.green,
+      items: [
+        { label: 'Circuitos',      value: params.circuits },
+        { label: 'Total Grafos',   value: params.total_graphs },
+        { label: 'Split',          value: 'LOCO CV' },
+        { label: 'Target',         value: 'Deg. Rate (s/lap)' },
+        { label: 'Features',       value: 'Lap, Compound, Stint…' },
+      ],
+    },
   ]
 
   return (
-    <div style={{
-      background: '#1E1E2E',
-      border: '1px solid #2A2A40',
-      borderRadius: '4px',
-      padding: '24px',
-    }}>
-      <div style={{
-        fontSize: '11px', fontWeight: '600', letterSpacing: '2px',
-        color: '#8B8BA3', textTransform: 'uppercase', marginBottom: '20px',
-      }}>
-        TRAINING PARAMETERS
-      </div>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-        gap: '2px',
-        background: '#2A2A40',
-        border: '1px solid #2A2A40',
-        borderRadius: '4px',
-        overflow: 'hidden',
-      }}>
-        {rows.map(({ label, value }) => (
-          <div key={label} style={{ background: '#1E1E2E', padding: '14px 16px' }}>
-            <div style={{
-              fontSize: '10px', fontWeight: '700', letterSpacing: '2px',
-              color: '#8B8BA3', textTransform: 'uppercase', marginBottom: '5px',
-            }}>
-              {label}
-            </div>
-            <div style={{
-              fontSize: '16px', fontWeight: '600', color: '#FFFFFF',
-              fontFamily: "'Rajdhani', 'Titillium Web', sans-serif",
-            }}>
-              {value}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontFamily: "'Titillium Web', sans-serif" }}>
+      {groups.map(g => (
+        <ParamGroup key={g.title} title={g.title} color={g.color} items={g.items} />
+      ))}
     </div>
   )
 }
