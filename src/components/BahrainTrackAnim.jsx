@@ -252,7 +252,7 @@ export default function BahrainTrackAnim() {
     return () => cancelAnimationFrame(frameRef.current)
   }, [])
 
-  const { x, y, angle, progress, lap, phase, pitTimer, stopCount, stint, features = {}, fastForward } = disp
+  const { x, y, angle, progress, lap, phase, pitTimer, stopCount, stint, fastForward } = disp
 
   // Telemetry
   const telem = phase === 'racing'
