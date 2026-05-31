@@ -3,10 +3,7 @@ import tracksData        from '../data/tracks.json'
 import GaugeCard         from './GaugeCard'
 import TrackSelector     from './TrackSelector'
 import CircuitComparison from './CircuitComparison'
-import TrainingCurves    from './TrainingCurves'
-import TrainingParams    from './TrainingParams'
-import MonteCarloChart        from './MonteCarloChart'
-import PitStrategyNarrative  from './PitStrategyNarrative'
+import StrategyStory from './StrategyStory'
 import BahrainTrackAnim  from './BahrainTrackAnim'
 import f1Logo            from '../assets/f1_logo.png'
 import f1Car             from '../assets/esqueletof1.webp'
@@ -25,32 +22,7 @@ const C = {
   lightGray:  '#C4C4D4',
 }
 
-const TABS = ['OVERVIEW', 'CIRCUITOS', 'SIMULACIÓN', 'ENTRENAMIENTO', 'ESTRATEGIA']
-
-// KPI card (static, no gauge)
-function KpiCard({ label, value, sub, accent }) {
-  return (
-    <div style={{
-      background: C.surfaceAlt,
-      border: `1px solid ${C.border}`,
-      borderRadius: 4,
-      padding: '14px 18px',
-      flex: '1 1 130px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 4,
-      fontFamily: "'Titillium Web', sans-serif",
-    }}>
-      <div style={{ color: accent || C.white, fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em' }}>
-        {value}
-      </div>
-      <div style={{ color: C.lightGray, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        {label}
-      </div>
-      {sub && <div style={{ color: C.gray, fontSize: 10 }}>{sub}</div>}
-    </div>
-  )
-}
+const TABS = ['OVERVIEW', 'CIRCUITOS', 'SIMULACIÓN', 'ESTRATEGIA']
 
 // Small info card
 function InfoCard({ label, value, color, sub }) {
@@ -166,20 +138,6 @@ export default function Dashboard() {
           <span style={{ color: C.green, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em' }}>LIVE</span>
         </div>
       </header>
-
-      {/* Global KPI Row */}
-      <div style={{
-        padding: '16px 24px 0',
-        display: 'flex',
-        gap: 12,
-        flexWrap: 'wrap',
-      }}>
-        <KpiCard label="GNN Avg R²"       value={meta.gnn_avg_r2.toFixed(3)}    accent={C.green}  sub="vs XGB −0.220" />
-        <KpiCard label="GNN Avg MAE"      value={meta.gnn_avg_mae.toFixed(3)+'s'} accent={C.red}   sub="vs XGB 2.787s" />
-        <KpiCard label="MAE Reduction"    value={meta.mae_reduction_pct+'%'}     accent={C.green}  sub="XGB → GNN" />
-        <KpiCard label="Total Graphs"     value={meta.total_graphs}              accent={C.yellow} sub="12 circuitos · LOCO CV" />
-        <KpiCard label="Best Circuit"     value={meta.r2_above_09 + ' @ R²>0.9'} accent={C.orange} sub={meta.best_circuit + ' ' + meta.best_gnn_r2.toFixed(4)} />
-      </div>
 
       {/* Tabs */}
       <nav style={{
@@ -308,35 +266,9 @@ export default function Dashboard() {
           <CircuitComparison circuits={circuits} />
         )}
 
-        {/* ─── ENTRENAMIENTO ─── */}
-        {activeTab === 'ENTRENAMIENTO' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-            <section>
-              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
-                HISTORIAL DE ENTRENAMIENTO
-              </div>
-              <TrainingCurves history={training.history} />
-            </section>
-            <section>
-              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
-                PARÁMETROS DEL MODELO
-              </div>
-              <TrainingParams params={training.params} />
-            </section>
-          </div>
-        )}
-
         {/* ─── ESTRATEGIA ─── */}
         {activeTab === 'ESTRATEGIA' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-            <PitStrategyNarrative />
-            <div>
-              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
-                DISTRIBUCIÓN PROBABILÍSTICA — BANDAS DE CONFIANZA MONTE CARLO
-              </div>
-              <MonteCarloChart data={monte_carlo} />
-            </div>
-          </div>
+          <StrategyStory />
         )}
       </main>
 

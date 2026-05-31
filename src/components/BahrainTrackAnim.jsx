@@ -101,93 +101,7 @@ function getTireWear(lap, stint) {
   return Math.min(((p_now - p_start) / (p_end - p_start)) * 100, 100)
 }
 
-// ─── Feature simulation ─────────────────────────────────────────────────────
-// Realistic Bahrain GP ambient values; each changes gently per lap/progress
-// SHAP values from XGBoost analysis (app.py)
-const SHAP_MAX = 0.1193  // TyreLife is the top feature
-
-const SHAP = {
-  tyreLife:        0.1193,
-  tyrelifeSquared: 0.0626,
-  humidity:        0.0893,
-  fuelLoad:        0.0746,
-  pressure:        0.0744,
-  airTemp:         0.0552,
-  trackTemp:       0.0509,
-  windDir:         0.0459,
-  windSpeed:       0.0324,
-  rainfall:        0.0089,
-  compound:        0.0069,
-}
-
-function getFeatureValues(lap, progress, stint) {
-  const stintStart  = stint === 0 ? 1 : PIT_LAPS[stint - 1] + 1
-  const tyreLife    = Math.max(1, lap - stintStart + 1)
-  const s           = Math.sin
-  const c           = Math.cos
-  return {
-    tyreLife,
-    tyrelifeSquared:  tyreLife * tyreLife,
-    trackTemp:        (38.2 + s(lap * 0.28) * 2.1 + s(progress * 6.28) * 0.8).toFixed(1),
-    airTemp:          (30.1 + s(lap * 0.19) * 1.4 + c(progress * 3.14) * 0.4).toFixed(1),
-    humidity:         Math.round(44 + s(lap * 0.35) * 9 + s(progress * 2) * 3),
-    pressure:         (1012.8 + c(lap * 0.22) * 1.8).toFixed(1),
-    windDir:          Math.round((lap * 12 + progress * 28) % 360),
-    windSpeed:        (9.4 + s(lap * 0.44) * 4.2).toFixed(1),
-    rainfall:         0,
-    fuelLoad:         Math.max(2, (105 - lap * 1.92)).toFixed(1),
-    compound:         COMPOUNDS[Math.min(stint, 2)],
-  }
-}
-
-// ─── Feature panel sub-components ───────────────────────────────────────────
-
-function ShapBar({ shap }) {
-  const pct = (shap / SHAP_MAX) * 100
-  const color = pct > 80 ? C.red : pct > 55 ? C.orange : pct > 35 ? C.yellow : C.gray
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
-      <div style={{ flex: 1, height: 3, background: C.border, borderRadius: 2 }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2 }} />
-      </div>
-      <span style={{ color: C.gray, fontSize: 8, minWidth: 28, textAlign: 'right' }}>
-        {shap.toFixed(3)}
-      </span>
-    </div>
-  )
-}
-
-function FeatureRow({ label, value, unit = '', shap }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
-      <div style={{ flex: '0 0 88px' }}>
-        <div style={{ color: C.lightGray, fontSize: 9.5, fontWeight: 600, lineHeight: 1.2 }}>{label}</div>
-        <ShapBar shap={shap} />
-      </div>
-      <div style={{ flex: '0 0 52px', textAlign: 'right' }}>
-        <span style={{ color: C.white, fontSize: 12, fontWeight: 700 }}>{value}</span>
-        {unit && <span style={{ color: C.gray, fontSize: 9, marginLeft: 2 }}>{unit}</span>}
-      </div>
-    </div>
-  )
-}
-
-function FeatureGroup({ title, color, children }) {
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{
-        color, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
-        textTransform: 'uppercase', marginBottom: 6,
-        borderBottom: `1px solid ${C.border}`, paddingBottom: 4,
-      }}>
-        {title}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-// ─── Existing bar component ──────────────────────────────────────────────────
+// ─── Bar component ──────────────────────────────────────────────────────────
 function Bar({ label, value, max, color }) {
   return (
     <div>
@@ -328,7 +242,6 @@ export default function BahrainTrackAnim() {
         pitTimer: pitTimerRef.current,
         stopCount: stopCountRef.current,
         stint: stintRef.current,
-        features: getFeatureValues(lapRef.current, progressRef.current, stintRef.current),
         fastForward: getRaceSpeed(lapRef.current) === RACE_SPEED_FAST && phaseRef.current === 'racing',
       })
 
@@ -491,213 +404,108 @@ export default function BahrainTrackAnim() {
       </div>
 
       {/* ── Telemetry panel ── */}
-      <div style={{ flex: '0 0 205px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ flex: '0 0 200px', display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-        {/* Sector */}
-        <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px' }}>
-          <div style={{ color: C.gray, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
-            SECTOR
+        {/* Speed */}
+        <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 4, padding: '14px 16px' }}>
+          <div style={{ color: C.gray, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>VELOCIDAD</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ color: C.white, fontSize: 42, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em' }}>
+              {telem.speed}
+            </span>
+            <span style={{ color: C.gray, fontSize: 11 }}>km/h</span>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {['S1','S2','S3'].map(s => {
-              const sc = SC[s]
-              const active = telem.sector === s
-              return (
-                <div key={s} style={{
-                  flex: 1, textAlign: 'center', padding: '6px 0', borderRadius: 3,
-                  background: active ? sc + '22' : 'transparent',
-                  border: `1px solid ${active ? sc : C.border}`,
-                  color: active ? sc : C.gray,
-                  fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
-                  transition: 'all 0.12s',
-                }}>
-                  {s}
-                </div>
-              )
-            })}
+          <div style={{ color: C.gray, fontSize: 9, marginTop: 4 }}>
+            {phase === 'pit_stop' ? 'Pit Box' : phase !== 'racing' ? 'Pit Lane' : telem.corner}
           </div>
-          {telem.sector === 'PIT' && (
-            <div style={{
-              marginTop: 6, textAlign: 'center', padding: '5px 0', borderRadius: 3,
-              background: 'rgba(255,215,0,0.1)', border: `1px solid ${C.yellow}`,
-              color: C.yellow, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-            }}>
-              PIT LANE
-            </div>
-          )}
-        </div>
-
-        {/* Speed + Gear */}
-        <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 4, padding: '12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: C.gray, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>VELOCIDAD</div>
-              <div style={{ color: C.white, fontSize: 36, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em' }}>
-                {telem.speed}
-              </div>
-              <div style={{ color: C.gray, fontSize: 9 }}>km/h</div>
-            </div>
-            <div style={{ textAlign: 'center', marginTop: 2 }}>
-              <div style={{ color: C.gray, fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>MARCHA</div>
-              <div style={{
-                background: C.border, borderRadius: 4, width: 42, height: 42,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: C.white, fontSize: 26, fontWeight: 900,
-              }}>
-                {telem.gear}
-              </div>
-            </div>
-          </div>
-          <Bar label="Speed" value={telem.speed} max={340} color={C.red} />
-        </div>
-
-        {/* DRS */}
-        <div style={{
-          background: C.surfaceAlt,
-          border: `1px solid ${telem.drs ? C.green : C.border}`,
-          borderRadius: 4, padding: '9px 14px',
-          display: 'flex', alignItems: 'center', gap: 8,
-          transition: 'border-color 0.15s',
-        }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: telem.drs ? C.green : C.gray,
-            boxShadow: telem.drs ? `0 0 7px ${C.green}` : 'none',
-            flexShrink: 0, transition: 'all 0.15s',
-          }} />
-          <span style={{ color: telem.drs ? C.green : C.gray, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em' }}>
-            DRS {telem.drs ? 'ACTIVO' : 'CERRADO'}
-          </span>
-          {telem.drs && <span style={{ marginLeft: 'auto', color: C.green, fontSize: 10, fontWeight: 900 }}>▶▶</span>}
         </div>
 
         {/* Tire */}
-        <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ color: C.gray, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>NEUMÁTICO</span>
+        <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 4, padding: '12px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ color: C.gray, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>NEUMÁTICO</span>
             <span style={{
               background: compound === 'SOFT' ? 'rgba(225,6,0,0.2)' : compound === 'HARD' ? 'rgba(200,200,200,0.08)' : 'rgba(255,215,0,0.12)',
               color: compoundColor, fontSize: 8, fontWeight: 900,
-              padding: '2px 6px', borderRadius: 2, letterSpacing: '0.08em',
+              padding: '2px 7px', borderRadius: 2, letterSpacing: '0.08em',
               border: `1px solid ${compoundColor}55`,
               transition: 'all 0.3s',
             }}>
               {compound}
             </span>
           </div>
-          <Bar label={`Desgaste ${tireWear}%`} value={tireWear} max={100} color={wearColor} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 6 }}>
+            <span style={{ color: C.gray, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>DESGASTE</span>
+            <span style={{ color: wearColor, fontSize: 22, fontWeight: 900, lineHeight: 1 }}>{tireWear}%</span>
+          </div>
+          <div style={{ height: 4, background: C.border, borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', width: `${tireWear}%`,
+              background: wearColor, borderRadius: 2,
+              boxShadow: `0 0 6px ${wearColor}88`,
+              transition: 'width 0.08s linear',
+            }} />
+          </div>
           {phase === 'pit_stop' && (
             <div style={{ marginTop: 8, textAlign: 'center', color: C.yellow, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em' }}>
-              🔧 Montando {nextCompound}...
+              Montando {nextCompound}...
             </div>
           )}
         </div>
 
         {/* Lap / Stint */}
         <div style={{
-          background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px',
+          background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 4, padding: '12px 16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div>
-            <div style={{ color: C.gray, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>VUELTA</div>
-            <div style={{ color: C.gray, fontSize: 8, marginTop: 2 }}>Stint {Math.min(stint, 2) + 1} · Parada {stopCount}/2</div>
+            <div style={{ color: C.gray, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>VUELTA</div>
+            <div style={{ color: C.gray, fontSize: 8, marginTop: 3 }}>Stint {Math.min(stint, 2) + 1} · Parada {stopCount}/2</div>
           </div>
-          <span style={{ color: C.white, fontSize: 24, fontWeight: 900 }}>
-            {lap}<span style={{ color: C.gray, fontSize: 11, fontWeight: 400 }}> / 50</span>
+          <span style={{ color: C.white, fontSize: 28, fontWeight: 900, lineHeight: 1 }}>
+            {lap}<span style={{ color: C.gray, fontSize: 12, fontWeight: 400 }}> /50</span>
           </span>
         </div>
 
-        {/* GNN model data card */}
-        <div style={{ background: 'rgba(225,6,0,0.06)', border: `1px solid rgba(225,6,0,0.22)`, borderRadius: 4, padding: '10px 12px' }}>
-          <div style={{ color: C.red, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
-            GNN GAT v5.1 · ESTRATEGIA P50
+        {/* GNN model card */}
+        <div style={{ background: 'rgba(225,6,0,0.06)', border: `1px solid rgba(225,6,0,0.25)`, borderRadius: 4, padding: '12px 14px' }}>
+          <div style={{ color: C.red, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
+            GNN GAT v5.1 · P50
           </div>
-          <div style={{ color: C.lightGray, fontSize: 9, marginBottom: 4 }}>
-            Degrad. acumulada:&nbsp;
-            <b style={{ color: C.orange }}>{getP50(Math.min(lap, 50)).toFixed(3)}s</b>
+
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ color: C.gray, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Degradación acumulada</div>
+            <span style={{ color: C.orange, fontSize: 20, fontWeight: 900, lineHeight: 1 }}>
+              {getP50(Math.min(lap, 50)).toFixed(2)}s
+            </span>
           </div>
+
           {stopCount < 2 ? (
-            <div style={{ color: C.gray, fontSize: 8 }}>
-              Pit {stopCount + 1} ventana:&nbsp;
-              <b style={{ color: C.yellow }}>vuelta {PIT_LAPS[stopCount]}</b>
-              <br />
-              P50 ={' '}
-              <b style={{ color: C.yellow }}>{getP50(PIT_LAPS[stopCount]).toFixed(3)}s</b>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ color: C.gray, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+                Pit {stopCount + 1} — vuelta óptima
+              </div>
+              <span style={{ color: C.yellow, fontSize: 20, fontWeight: 900, lineHeight: 1 }}>
+                V{PIT_LAPS[stopCount]}
+              </span>
             </div>
           ) : (
-            <div style={{ color: C.green, fontSize: 9, fontWeight: 700 }}>✓ Estrategia completada</div>
+            <div style={{ color: C.green, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>✓ Estrategia completada</div>
           )}
-          <div style={{ color: C.gray, fontSize: 8, marginTop: 4, borderTop: `1px solid rgba(255,255,255,0.06)`, paddingTop: 4 }}>
-            R² <b style={{ color: C.green }}>0.9564</b> · MAE <b style={{ color: C.green }}>0.538s</b>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Model features panel ── */}
-      <div style={{
-        flex: '0 0 190px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0,
-        background: C.surfaceAlt,
-        border: `1px solid ${C.border}`,
-        borderRadius: 4,
-        padding: '12px 14px',
-        fontFamily: "'Titillium Web', sans-serif",
-      }}>
-        {/* Header */}
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ color: C.white, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            FEATURES · MODELO
-          </div>
-          <div style={{ color: C.gray, fontSize: 8, marginTop: 2 }}>
-            13 variables · SHAP importance
-          </div>
-          <div style={{ display: 'flex', gap: 4, marginTop: 5, fontSize: 8 }}>
-            {[['Neumático', C.red], ['Clima', C.yellow], ['Carrera', C.orange]].map(([l, c]) => (
-              <span key={l} style={{ color: c, fontWeight: 700, letterSpacing: '0.06em' }}>■ {l}</span>
-            ))}
-          </div>
-        </div>
-
-        <FeatureGroup title="Neumático" color={C.red}>
-          <FeatureRow label="TyreLife"      value={features.tyreLife}        unit="vueltas" shap={SHAP.tyreLife} />
-          <FeatureRow label="TyreLife²"     value={features.tyrelifeSquared} unit="v²"      shap={SHAP.tyrelifeSquared} />
-          <FeatureRow label="Compuesto"     value={features.compound || '—'} unit=""        shap={SHAP.compound} />
-        </FeatureGroup>
-
-        <FeatureGroup title="Condiciones" color={C.yellow}>
-          <FeatureRow label="Humedad"       value={features.humidity}   unit="%"   shap={SHAP.humidity} />
-          <FeatureRow label="Presión"       value={features.pressure}   unit="hPa" shap={SHAP.pressure} />
-          <FeatureRow label="Temp. Aire"    value={features.airTemp}    unit="°C"  shap={SHAP.airTemp} />
-          <FeatureRow label="Temp. Pista"   value={features.trackTemp}  unit="°C"  shap={SHAP.trackTemp} />
-          <FeatureRow label="Dir. Viento"   value={features.windDir}    unit="°"   shap={SHAP.windDir} />
-          <FeatureRow label="Vel. Viento"   value={features.windSpeed}  unit="km/h" shap={SHAP.windSpeed} />
-          <FeatureRow label="Lluvia"        value={features.rainfall === 0 ? 'No' : 'Sí'} unit="" shap={SHAP.rainfall} />
-        </FeatureGroup>
-
-        <FeatureGroup title="Carrera" color={C.orange}>
-          <FeatureRow label="Carga Comb."   value={features.fuelLoad}   unit="kg"  shap={SHAP.fuelLoad} />
-        </FeatureGroup>
-
-        {/* Target variable */}
-        <div style={{
-          marginTop: 2, borderTop: `1px solid ${C.border}`, paddingTop: 8,
-        }}>
-          <div style={{ color: C.gray, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-            TARGET
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: C.lightGray, fontSize: 9 }}>deltadeg (s/vuelta)</span>
-            <span style={{
-              color: C.red, fontSize: 10, fontWeight: 700,
-              background: 'rgba(225,6,0,0.1)', padding: '2px 6px', borderRadius: 2,
-            }}>
-              {MC[Math.min((features.tyreLife || 1) + 1, 49)]
-                ? (MC[Math.min((features.tyreLife || 1) + 1, 49)].p50
-                   - MC[Math.max((features.tyreLife || 1) - 1, 0)].p50).toFixed(3) + 's'
-                : '—'}
-            </span>
+          <div style={{ borderTop: `1px solid rgba(255,255,255,0.07)`, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ color: C.gray, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>R²</div>
+              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>0.956</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ color: C.gray, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>MAE</div>
+              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>0.538s</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ color: C.gray, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>±Vueltas</div>
+              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>±2.4v</div>
+            </div>
           </div>
         </div>
       </div>

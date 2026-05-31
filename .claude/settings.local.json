@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(node_modules\\\\.bin\\\\vite build *)"
+      "Bash(node_modules\\\\.bin\\\\vite build *)",
+      "Bash(powershell -Command \"Get-Content src/data/xgb_final.json -TotalCount 100 | ConvertFrom-Json | Get-Member\")"
     ]
   }
 }
