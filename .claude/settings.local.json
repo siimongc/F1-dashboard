@@ -25,7 +25,8 @@
       "Bash(powershell *)",
       "Bash(Get-ChildItem \"C:\\\\Users\\\\siimo\\\\Programming_projects\\\\datos-f1\\\\reports\" -Recurse)",
       "Bash(Select-Object FullName)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\siimo\\\\Programming_projects\\\\datos-f1\" -Recurse -File | Where-Object { $_.Extension -in '.csv','.json','.txt','.png' } | Select-Object -ExpandProperty FullName)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\siimo\\\\Programming_projects\\\\datos-f1\" -Recurse -File | Where-Object { $_.Extension -in '.csv','.json','.txt','.png' } | Select-Object -ExpandProperty FullName)",
+      "Bash(npm run *)"
     ]
   }
 }

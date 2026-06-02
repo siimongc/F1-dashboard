@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import tracksData from '../data/tracks.json'
+import stintsData from '../data/stints.json'
 
 const C = {
   red:       '#E10600',
@@ -14,18 +14,50 @@ const C = {
   lightGray: '#C4C4D4',
 }
 
-// Monte Carlo P50 data from GNN model output
-const MC = tracksData.monte_carlo  // [{vuelta, p10, p50, p90}, ...]
+// ── Real Bahrain 2024 data from GNN evaluation ───────────────────────────────
+const BAHRAIN     = stintsData['Bahrain_Grand_Prix']
+const REAL_STINTS = BAHRAIN.stints.filter(s => s.n_laps >= 4)
 
-// Pit stop laps derived from MC P50 — 1/3 and 2/3 of total cumulative degradation
-// lap 21 → P50=4.12s, lap 37 → P50=7.67s
-const PIT_LAPS           = [21, 37]
-const PIT_STOP_DURATION  = 2.4  // animation seconds at pit box
-const POST_PIT_PROGRESS  = 0.04 // circuit progress after pit exit (onto main straight)
+// cumulative degradation lookup by race_lap
+const CUM_BY_LAP = {}
+REAL_STINTS.forEach((stint, si) => {
+  stint.laps.forEach(lap => {
+    CUM_BY_LAP[lap.race_lap] = { cumulative: lap.cumulative, stintIndex: si }
+  })
+})
 
-const RACE_SPEED_FAST   = 0.66   // ~1.5s por vuelta en modo rápido
-const RACE_SPEED_NORMAL = 0.132  // ~7.5s por vuelta — énfasis pit
-const PIT_SLOW_WINDOW   = 2      // vueltas antes del pit donde se frena
+// max cumulative per stint for wear normalization (avoid division by ~0)
+const STINT_MAX_CUM = REAL_STINTS.map(stint =>
+  Math.max(...stint.laps.map(l => l.cumulative), 0.001)
+)
+
+// wear percentage lookup by race_lap (0–100, peak-hold so it never decreases)
+const WEAR_BY_LAP = {}
+REAL_STINTS.forEach((stint, si) => {
+  const maxCum = STINT_MAX_CUM[si]
+  let peak = 0
+  stint.laps.forEach(lap => {
+    const normalized = Math.min(Math.max(lap.cumulative / maxCum * 100, 0), 100)
+    peak = Math.max(peak, normalized)
+    WEAR_BY_LAP[lap.race_lap] = peak
+  })
+})
+
+// pit lap = last lap of each stint except the final one
+const PIT_LAPS  = REAL_STINTS.slice(0, -1).map(s => s.laps[s.laps.length - 1].race_lap)
+// → [12]  (SOFT ends at lap 12, HARD runs to the flag)
+
+const TOTAL_LAPS = REAL_STINTS[REAL_STINTS.length - 1].laps[REAL_STINTS[REAL_STINTS.length - 1].laps.length - 1].race_lap
+// → 57
+
+const COMPOUNDS       = REAL_STINTS.map(s => s.compound)  // ['SOFT','HARD']
+const COMPOUND_COLORS = { SOFT: '#E10600', MEDIUM: '#FFD700', HARD: '#CCCCCC', INTER: '#00D27A' }
+
+const PIT_STOP_DURATION = 2.4
+const POST_PIT_PROGRESS = 0.04
+const RACE_SPEED_FAST   = 0.66
+const RACE_SPEED_NORMAL = 0.132
+const PIT_SLOW_WINDOW   = 2
 
 function getRaceSpeed(lap) {
   for (const pitLap of PIT_LAPS) {
@@ -33,9 +65,6 @@ function getRaceSpeed(lap) {
   }
   return RACE_SPEED_FAST
 }
-
-const COMPOUNDS      = ['MEDIUM', 'HARD', 'SOFT']
-const COMPOUND_COLORS = { MEDIUM: '#FFD700', HARD: '#CCCCCC', SOFT: '#E10600' }
 
 // Main circuit path — Bahrain realistic outline (viewBox 0 0 560 315)
 // S/F straight at bottom, T1 hairpin left, outer loop upper-right, T10 hairpin, chicane
@@ -87,18 +116,19 @@ function getTelemetry(p) {
   return { speed: z[1], gear: z[2], drs: z[3], sector: z[4], corner: z[5] }
 }
 
-function getP50(lap) {
-  if (lap < 1) return 0
-  return MC[Math.min(lap - 1, 49)].p50
+// Real cumulative degradation for a given race lap
+function getRealCumulative(lap) {
+  const entry = CUM_BY_LAP[lap]
+  return entry ? +entry.cumulative.toFixed(3) : 0
 }
 
-// Tire wear 0-100% based on MC P50 degradation within the current stint
-function getTireWear(lap, stint) {
-  const p_start = stint === 0 ? 0 : getP50(PIT_LAPS[stint - 1])
-  const p_end   = getP50(stint < 2 ? PIT_LAPS[stint] : 50)
-  const p_now   = getP50(Math.min(lap, stint < 2 ? PIT_LAPS[stint] : 50))
-  if (p_end <= p_start) return 0
-  return Math.min(((p_now - p_start) / (p_end - p_start)) * 100, 100)
+// Tire wear 0–100% = real cumulative degradation normalized within the stint,
+// interpolated between laps using the car's intra-lap progress (0–1)
+function getTireWear(lap, lapProgress) {
+  const cur  = WEAR_BY_LAP[lap]
+  if (cur === undefined) return 0
+  const next = WEAR_BY_LAP[lap + 1] ?? cur
+  return cur + (next - cur) * lapProgress
 }
 
 // ─── Bar component ──────────────────────────────────────────────────────────
@@ -165,14 +195,14 @@ export default function BahrainTrackAnim() {
           progressRef.current -= 1
           lapRef.current++
 
-          if (lapRef.current > 50) {
+          if (lapRef.current > TOTAL_LAPS) {
             lapRef.current = 1
             stintRef.current = 0
             stopCountRef.current = 0
           }
 
           const justFinished = lapRef.current - 1
-          if (PIT_LAPS.includes(justFinished) && stopCountRef.current < 2) {
+          if (PIT_LAPS.includes(justFinished) && stopCountRef.current < PIT_LAPS.length) {
             phaseRef.current = 'pit_entry'
             pitProgressRef.current = 0
           }
@@ -266,11 +296,11 @@ export default function BahrainTrackAnim() {
   if (phase === 'pit_stop') {
     tireWear = Math.round(100 * Math.max(0, 1 - pitTimer / PIT_STOP_DURATION))
   } else {
-    tireWear = Math.round(getTireWear(lap, Math.min(stint, 2)))
+    tireWear = Math.round(getTireWear(lap, progress))
   }
 
-  const compound      = COMPOUNDS[Math.min(stint, 2)]
-  const nextCompound  = COMPOUNDS[Math.min(stint + 1, 2)]
+  const compound      = COMPOUNDS[Math.min(stint, COMPOUNDS.length - 1)]
+  const nextCompound  = COMPOUNDS[Math.min(stint + 1, COMPOUNDS.length - 1)]
   const compoundColor = COMPOUND_COLORS[compound]
   const wearColor     = tireWear > 70 ? C.red : tireWear > 40 ? C.orange : tireWear > 20 ? C.yellow : C.green
 
@@ -334,7 +364,7 @@ export default function BahrainTrackAnim() {
           </text>
           <text x={12} y={36} fill={C.gray} fontSize={9} fontFamily="'Titillium Web'">
             {phase === 'pit_stop' ? '🔧 Pit Box — Cambiando neumáticos' : phase !== 'racing' ? 'Pit Lane' : telem.corner}
-            {'  ·  Vuelta '}{lap}{ ' / 50'}
+            {'  ·  Vuelta '}{lap}{` / ${TOTAL_LAPS}`}
           </text>
 
           {/* Velocidad de simulación */}
@@ -361,7 +391,7 @@ export default function BahrainTrackAnim() {
                 fill="rgba(255,215,0,0.12)" stroke={C.yellow} strokeWidth={1} />
               <text x={300} y={292} textAnchor="middle" fill={C.yellow} fontSize={10}
                 fontWeight={700} fontFamily="'Titillium Web'" letterSpacing={1.5}>
-                PARADA {stopCount + 1}  ·  {Math.max(0, PIT_STOP_DURATION - pitTimer).toFixed(1)}s
+                PARADA {stopCount + 1}/{PIT_LAPS.length}  ·  {Math.max(0, PIT_STOP_DURATION - pitTimer).toFixed(1)}s
               </text>
             </>
           )}
@@ -460,10 +490,10 @@ export default function BahrainTrackAnim() {
         }}>
           <div>
             <div style={{ color: C.gray, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>VUELTA</div>
-            <div style={{ color: C.gray, fontSize: 8, marginTop: 3 }}>Stint {Math.min(stint, 2) + 1} · Parada {stopCount}/2</div>
+            <div style={{ color: C.gray, fontSize: 8, marginTop: 3 }}>Stint {Math.min(stint, COMPOUNDS.length - 1) + 1} · Parada {stopCount}/{PIT_LAPS.length}</div>
           </div>
           <span style={{ color: C.white, fontSize: 28, fontWeight: 900, lineHeight: 1 }}>
-            {lap}<span style={{ color: C.gray, fontSize: 12, fontWeight: 400 }}> /50</span>
+            {lap}<span style={{ color: C.gray, fontSize: 12, fontWeight: 400 }}> /{TOTAL_LAPS}</span>
           </span>
         </div>
 
@@ -474,16 +504,16 @@ export default function BahrainTrackAnim() {
           </div>
 
           <div style={{ marginBottom: 8 }}>
-            <div style={{ color: C.gray, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Degradación acumulada</div>
+            <div style={{ color: C.gray, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Degradación acumulada real</div>
             <span style={{ color: C.orange, fontSize: 20, fontWeight: 900, lineHeight: 1 }}>
-              {getP50(Math.min(lap, 50)).toFixed(2)}s
+              {getRealCumulative(lap).toFixed(3)}s
             </span>
           </div>
 
-          {stopCount < 2 ? (
+          {stopCount < PIT_LAPS.length ? (
             <div style={{ marginBottom: 8 }}>
               <div style={{ color: C.gray, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
-                Pit {stopCount + 1} — vuelta óptima
+                Pit {stopCount + 1} — vuelta real
               </div>
               <span style={{ color: C.yellow, fontSize: 20, fontWeight: 900, lineHeight: 1 }}>
                 V{PIT_LAPS[stopCount]}
@@ -496,15 +526,15 @@ export default function BahrainTrackAnim() {
           <div style={{ borderTop: `1px solid rgba(255,255,255,0.07)`, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ color: C.gray, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>R²</div>
-              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>0.956</div>
+              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>{BAHRAIN.gnn_r2}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ color: C.gray, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>MAE</div>
-              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>0.538s</div>
+              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>{BAHRAIN.gnn_mae}s</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ color: C.gray, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>±Vueltas</div>
-              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>±2.4v</div>
+              <div style={{ color: C.gray, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Stints</div>
+              <div style={{ color: C.green, fontSize: 13, fontWeight: 900 }}>{REAL_STINTS.length}</div>
             </div>
           </div>
         </div>
