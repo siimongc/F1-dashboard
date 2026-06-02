@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import tracksData        from '../data/tracks.json'
-import GaugeCard         from './GaugeCard'
-import TrackSelector     from './TrackSelector'
 import CircuitComparison from './CircuitComparison'
-import StrategyStory from './StrategyStory'
 import BahrainTrackAnim  from './BahrainTrackAnim'
 import f1Logo            from '../assets/f1_logo.png'
 import f1Car             from '../assets/esqueletof1.webp'
@@ -22,7 +19,7 @@ const C = {
   lightGray:  '#C4C4D4',
 }
 
-const TABS = ['OVERVIEW', 'CIRCUITOS', 'SIMULACIÓN', 'ESTRATEGIA']
+const TABS = ['OVERVIEW', 'CIRCUITOS', 'SIMULACIÓN']
 
 // Small info card
 function InfoCard({ label, value, color, sub }) {
@@ -50,9 +47,10 @@ export default function Dashboard() {
 
   const track = circuits.find(c => c.id === trackId) || circuits[0]
 
-  const maePct = track
-    ? ((track.xgb.mae - track.gnn.mae) / track.xgb.mae * 100).toFixed(1)
-    : '—'
+  const avgGnnR2  = (circuits.reduce((s, c) => s + c.gnn.r2, 0) / circuits.length).toFixed(3)
+  const avgGnnMae = (circuits.reduce((s, c) => s + c.gnn.mae, 0) / circuits.length).toFixed(3)
+  const above90   = circuits.filter(c => c.gnn.r2 >= 0.90).length
+  const totalGraphs = circuits.reduce((s, c) => s + (c.gnn.n_graphs || 0), 0)
 
   return (
     <div style={{
@@ -179,70 +177,41 @@ export default function Dashboard() {
       >
         {/* ─── OVERVIEW ─── */}
         {activeTab === 'OVERVIEW' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+
+            {/* KPI strip — métricas globales reales */}
             <section>
               <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
-                SELECCIONAR CIRCUITO
+                RESULTADOS GLOBALES · VALIDACIÓN LOCO · 12 CIRCUITOS
               </div>
-              <TrackSelector circuits={circuits} selected={trackId} onSelect={setTrackId} />
-            </section>
-
-            <section>
-              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
-                {track.flag} {track.name.toUpperCase()} — MÉTRICAS DEL MODELO
-              </div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <GaugeCard
-                  key={trackId + 'gnn_r2'}
-                  label="R² GNN GAT v5.1"
-                  value={track.gnn.r2}
-                  prevValue={track.xgb.r2}
-                  format="r2"
-                  showPrev
-                />
-                <GaugeCard
-                  key={trackId + 'gnn_mae'}
-                  label="MAE GNN (s)"
-                  value={track.gnn.mae}
-                  prevValue={track.xgb.mae}
-                  format="mae"
-                  maxScale={2.0}
-                  showPrev
-                />
-                <GaugeCard
-                  key={trackId + 'xgb_r2'}
-                  label="R² XGBoost"
-                  value={track.xgb.r2}
-                  format="r2"
-                  showPrev={false}
-                />
-                <GaugeCard
-                  key={trackId + 'xgb_mae'}
-                  label="MAE XGBoost (s)"
-                  value={track.xgb.mae}
-                  format="mae"
-                  maxScale={9.0}
-                  showPrev={false}
-                />
-              </div>
-            </section>
-
-            <section>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <InfoCard
-                  label="Mejora MAE"
-                  value={maePct + '%'}
+                  label="R² promedio GNN"
+                  value={avgGnnR2}
                   color={C.green}
-                  sub={`${track.xgb.mae.toFixed(3)}s → ${track.gnn.mae.toFixed(3)}s`}
+                  sub="validación leave-one-circuit-out"
                 />
                 <InfoCard
-                  label="Grafos de entrenamiento"
-                  value={track.gnn.n_graphs}
+                  label="Circuitos sobre 0.90"
+                  value={`${above90} / ${circuits.length}`}
+                  color={C.green}
+                  sub="en circuitos nunca vistos"
+                />
+                <InfoCard
+                  label="MAE promedio GNN"
+                  value={avgGnnMae + 's'}
                   color={C.orange}
-                  sub="sesiones de carrera"
+                  sub="error medio en predicción"
+                />
+                <InfoCard
+                  label="Grafos evaluados"
+                  value={totalGraphs}
+                  color={C.lightGray}
+                  sub="sesiones de carrera reales"
                 />
               </div>
             </section>
+
           </div>
         )}
 
@@ -263,13 +232,10 @@ export default function Dashboard() {
 
         {/* ─── CIRCUITOS ─── */}
         {activeTab === 'CIRCUITOS' && (
-          <CircuitComparison circuits={circuits} />
+          <CircuitComparison circuits={circuits} trainingHistory={training.history} />
         )}
 
-        {/* ─── ESTRATEGIA ─── */}
-        {activeTab === 'ESTRATEGIA' && (
-          <StrategyStory />
-        )}
+
       </main>
 
       {/* Footer */}

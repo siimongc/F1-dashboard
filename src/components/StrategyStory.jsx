@@ -1,7 +1,7 @@
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Cell,
-  ComposedChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
+  ComposedChart, Area, Line,
 } from 'recharts'
 import tracksData from '../data/tracks.json'
 
@@ -23,11 +23,37 @@ const PIT_1   = 21
 const PIT_2   = 37
 const NO_PIT  = 35   // 1-stop sin modelo
 
-// ── Tasa de degradación por vuelta (delta del P50 acumulado) ─────────────────
-const rateData = mc.map((d, i) => ({
-  vuelta: d.vuelta,
-  rate:   i === 0 ? d.p50 : +(d.p50 - mc[i - 1].p50).toFixed(4),
+// ── Desgaste acumulado por stint (vuelve a 0 tras cada pit) ──────────────────
+// Cada stint arranca desde la base del p50 en la primera vuelta de ese stint.
+const p50_s1 = mc[0].p50
+const p50_s2 = mc[PIT_1].p50   // lap PIT_1+1, primera vuelta con neumático nuevo
+const p50_s3 = mc[PIT_2].p50   // lap PIT_2+1
+
+const wearData = mc.map(d => {
+  const base = d.vuelta <= PIT_1 ? p50_s1
+             : d.vuelta <= PIT_2 ? p50_s2
+             :                     p50_s3
+  return {
+    vuelta:   d.vuelta,
+    wear:     +Math.max(0, d.p50  - base).toFixed(3),
+    confHigh: +Math.max(0, d.p90  - base).toFixed(3),
+    confLow:  +Math.max(0, d.p10  - base).toFixed(3),
+  }
+})
+
+// Nivel de desgaste que disparó el primer pit — es el 100% de vida útil
+const CRIT_WEAR = wearData[PIT_1 - 1].wear
+
+// Normalizar a % de vida útil (0 = goma nueva, 100 = límite crítico)
+const wearPctData = wearData.map(d => ({
+  vuelta:      d.vuelta,
+  wearPct:     +Math.min(105, (d.wear     / CRIT_WEAR) * 100).toFixed(1),
+  confHighPct: +Math.min(110, (d.confHigh / CRIT_WEAR) * 100).toFixed(1),
+  confLowPct:  +Math.max(0,   (d.confLow  / CRIT_WEAR) * 100).toFixed(1),
 }))
+
+// % al que el GNN ordenó el segundo pit (muestra anticipación)
+const PCT_AT_PIT2 = +((wearData[PIT_2 - 1].wear / CRIT_WEAR) * 100).toFixed(0)
 
 // ── Ventaja acumulada GNN vs. estrategia sin modelo (1 parada en V35) ────────
 // Sin modelo: sigue degradándose sin parar en V21; para en V35 una sola vez.
@@ -45,19 +71,20 @@ const FINAL_SAVING = savingsData[49].ahorro   // 7.12s
 const axisStyle = { fill: C.gray, fontFamily: "'Titillium Web', sans-serif", fontSize: 10 }
 
 // ── Tooltips ─────────────────────────────────────────────────────────────────
-function RateTooltip({ active, payload, label }) {
+function WearTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
-  const rate = payload[0]?.value
-  const [zoneLabel, zoneColor] =
-    rate >= 0.35 ? ['CRÍTICO — Pit window activado', C.red]  :
-    rate >= 0.25 ? ['ATENCIÓN — Desgaste elevado',   C.orange] :
-    rate >= 0.15 ? ['MODERADO',                       C.yellow] :
-                   ['NORMAL — Neumático fresco',      C.green]
+  const pct = payload.find(p => p.dataKey === 'wearPct')?.value
+  if (pct == null) return null
+  const [zone, col] =
+    pct >= 100 ? ['LÍMITE ALCANZADO — pit inminente', C.red]    :
+    pct >= 72  ? ['ATENCIÓN — desgaste elevado',       C.orange] :
+    pct >= 40  ? ['MODERADO',                          C.yellow] :
+                 ['NORMAL — neumático fresco',         C.green]
   return (
     <div style={{ background:'#1A1A2A', border:`1px solid ${C.border}`, borderRadius:4, padding:'8px 12px', fontFamily:"'Titillium Web', sans-serif", fontSize:11 }}>
       <div style={{ color:C.white, fontWeight:700, marginBottom:4 }}>Vuelta {label}</div>
-      <div style={{ color:C.lightGray }}>Tasa: <b style={{ color:zoneColor }}>{rate?.toFixed(3)} s/v</b></div>
-      <div style={{ color:zoneColor, fontSize:10, marginTop:2 }}>{zoneLabel}</div>
+      <div style={{ color:C.lightGray }}>Vida útil consumida: <b style={{ color:col }}>{pct.toFixed(0)}%</b></div>
+      <div style={{ color:col, fontSize:10, marginTop:3 }}>{zone}</div>
     </div>
   )
 }
@@ -112,61 +139,85 @@ export default function StrategyStory() {
           n="01"
           title="La señal — el GNN detecta cuándo el neumático alcanza el punto de quiebre"
           subtitle={
-            `Cada barra muestra cuántos segundos de degradación se acumulan por vuelta. ` +
-            `Cuando la tasa supera 0.35 s/v (rojo), el neumático ha alcanzado su umbral crítico y la parada es inminente. ` +
-            `En la vuelta ${PIT_1} la tasa llega a 0.384 s/v — el GNN activa el pit. ` +
-            `En la vuelta ${PIT_2} la tasa aún es moderada, pero el modelo anticipa el pico de V44 (0.49 s/v) y ordena la segunda parada antes de que ocurra.`
+            `El eje Y muestra qué porcentaje de vida útil tiene consumido el neumático: 0% = goma nueva, 100% = límite crítico de desgaste. ` +
+            `La curva sube vuelta a vuelta y cae en vertical cuando hay un pit (neumático cambiado). ` +
+            `En el primer stint el GNN ordena parar al llegar al 100%. En el segundo, para al ${PCT_AT_PIT2}% — porque predice que la degradación se va a acelerar y el neumático cruzaría el límite antes de terminar la carrera.`
           }
         />
 
         <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:4, padding:'20px 20px 12px 8px' }}>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={rateData} margin={{ top:18, right:36, left:4, bottom:18 }}>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={wearPctData} margin={{ top:24, right:48, left:4, bottom:18 }}>
+              <defs>
+                <linearGradient id="wearGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor={C.red}    stopOpacity={0.60} />
+                  <stop offset="50%"  stopColor={C.orange} stopOpacity={0.30} />
+                  <stop offset="100%" stopColor={C.green}  stopOpacity={0.06} />
+                </linearGradient>
+                <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor={C.orange} stopOpacity={0.08} />
+                  <stop offset="100%" stopColor={C.green}  stopOpacity={0.01} />
+                </linearGradient>
+              </defs>
+
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
               <XAxis
                 dataKey="vuelta" tick={axisStyle} axisLine={false} tickLine={false}
                 label={{ value:'Vuelta de carrera', position:'insideBottom', offset:-8, fill:C.gray, fontSize:9, fontFamily:"'Titillium Web', sans-serif" }}
               />
               <YAxis
-                tick={axisStyle} axisLine={false} tickLine={false} width={38}
-                domain={[0, 0.60]} tickFormatter={v => v.toFixed(2)}
-                label={{ value:'s / vuelta', angle:-90, position:'insideLeft', offset:6, fill:C.gray, fontSize:9, fontFamily:"'Titillium Web', sans-serif" }}
+                tick={axisStyle} axisLine={false} tickLine={false} width={44}
+                domain={[0, 115]} ticks={[0,25,50,75,100]}
+                tickFormatter={v => v + '%'}
+                label={{ value:'Vida útil consumida', angle:-90, position:'insideLeft', offset:8, fill:C.gray, fontSize:9, fontFamily:"'Titillium Web', sans-serif" }}
               />
-              <Tooltip content={<RateTooltip />} cursor={{ fill:'rgba(255,255,255,0.03)' }} />
+              <Tooltip content={<WearTooltip />} cursor={{ stroke:C.border, strokeWidth:1 }} />
 
-              {/* Umbral crítico */}
-              <ReferenceLine y={0.35} stroke={C.red} strokeDasharray="5 3" strokeWidth={1.5}
-                label={{ value:'Umbral crítico  0.35 s/v', position:'insideTopRight', fill:C.red, fontSize:8.5, fontFamily:"'Titillium Web', sans-serif" }} />
+              {/* Límite crítico 100% */}
+              <ReferenceLine y={100} stroke={C.red} strokeDasharray="5 3" strokeWidth={1.5}
+                label={{ value:'100% — límite crítico', position:'insideTopRight', fill:C.red, fontSize:8.5, fontFamily:"'Titillium Web', sans-serif" }} />
 
-              {/* Pit 1 */}
+              {/* Pit 1 — al 100% */}
               <ReferenceLine x={PIT_1} stroke={C.green} strokeWidth={2} strokeDasharray="5 3"
-                label={{ value:`▼ GNN: PIT 1  ·  V${PIT_1}`, position:'top', fill:C.green, fontSize:8.5, fontFamily:"'Titillium Web', sans-serif", fontWeight:700 }} />
+                label={{ value:`▼ PIT 1  V${PIT_1} · 100%`, position:'top', fill:C.green, fontSize:8.5, fontFamily:"'Titillium Web', sans-serif", fontWeight:700 }} />
 
-              {/* Pit 2 */}
-              <ReferenceLine x={PIT_2} stroke={C.green} strokeWidth={2} strokeDasharray="5 3"
-                label={{ value:`▼ GNN: PIT 2  ·  V${PIT_2}`, position:'top', fill:C.green, fontSize:8.5, fontFamily:"'Titillium Web', sans-serif", fontWeight:700 }} />
+              {/* Pit 2 — anticipado antes del 100% */}
+              <ReferenceLine x={PIT_2} stroke={C.yellow} strokeWidth={2} strokeDasharray="5 3"
+                label={{ value:`▼ PIT 2  V${PIT_2} · ${PCT_AT_PIT2}% — anticipado`, position:'top', fill:C.yellow, fontSize:8.5, fontFamily:"'Titillium Web', sans-serif", fontWeight:700 }} />
 
-              <Bar dataKey="rate" radius={[2,2,0,0]} isAnimationActive animationDuration={700}>
-                {rateData.map(d => (
-                  <Cell
-                    key={d.vuelta}
-                    fill={d.rate >= 0.35 ? C.red : '#3A3A58'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
+              {/* Banda de confianza P10–P90 */}
+              <Area type="monotone" dataKey="confHighPct" fill="url(#confGrad)" stroke="none" isAnimationActive={false} />
+              <Area type="monotone" dataKey="confLowPct"  fill={C.surface}      stroke="none" isAnimationActive={false} />
+
+              {/* Curva principal de desgaste */}
+              <Area
+                type="monotone" dataKey="wearPct"
+                fill="url(#wearGrad)" stroke={C.orange} strokeWidth={2.5}
+                dot={false} isAnimationActive animationDuration={900}
+              />
+
+              {/* Dot activo al hover */}
+              <Line
+                type="monotone" dataKey="wearPct" stroke="none" dot={false}
+                activeDot={{ r:5, fill:C.orange, stroke:C.white, strokeWidth:2 }}
+                isAnimationActive={false}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
 
-          {/* Leyenda simplificada */}
-          <div style={{ display:'flex', gap:24, justifyContent:'center', paddingTop:4 }}>
-            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:9.5, color:C.gray, fontFamily:"'Titillium Web', sans-serif" }}>
-              <span style={{ display:'inline-block', width:10, height:10, borderRadius:2, background:'#3A3A58', flexShrink:0 }} />
-              Desgaste normal
-            </span>
-            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:9.5, color:C.lightGray, fontFamily:"'Titillium Web', sans-serif" }}>
-              <span style={{ display:'inline-block', width:10, height:10, borderRadius:2, background:C.red, flexShrink:0 }} />
-              Umbral crítico ≥ 0.35 s/v — el GNN activa el pit
-            </span>
+          {/* Leyenda */}
+          <div style={{ display:'flex', gap:24, justifyContent:'center', paddingTop:4, flexWrap:'wrap' }}>
+            {[
+              { color:C.green,  label:'0% — neumático nuevo' },
+              { color:C.orange, label:'Desgaste creciente' },
+              { color:C.red,    label:'100% — límite crítico' },
+              { color:C.yellow, label:'Pit anticipado por el GNN' },
+            ].map(({ color, label }) => (
+              <span key={label} style={{ display:'flex', alignItems:'center', gap:6, fontSize:9.5, color:C.gray, fontFamily:"'Titillium Web', sans-serif" }}>
+                <span style={{ display:'inline-block', width:10, height:10, borderRadius:2, background:color, flexShrink:0 }} />
+                {label}
+              </span>
+            ))}
           </div>
         </div>
       </div>
