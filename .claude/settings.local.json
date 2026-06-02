@@ -26,7 +26,11 @@
       "Bash(Get-ChildItem \"C:\\\\Users\\\\siimo\\\\Programming_projects\\\\datos-f1\\\\reports\" -Recurse)",
       "Bash(Select-Object FullName)",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\siimo\\\\Programming_projects\\\\datos-f1\" -Recurse -File | Where-Object { $_.Extension -in '.csv','.json','.txt','.png' } | Select-Object -ExpandProperty FullName)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\siimo\\\\Programming_projects\\\\datos-f1\\\\ml-dashboard\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Format-Table -AutoSize)"
     ]
   }
 }

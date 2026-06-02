@@ -88,102 +88,6 @@ function InsightPill({ color, children }) {
   )
 }
 
-// ── Pit Stop Decision Panel ───────────────────────────────────────────────────
-
-function PitStopPanel({ circuitData, stintMeta, r2 }) {
-  if (!stintMeta || !stintMeta.length) return null
-
-  const worst = [...stintMeta].sort((a, b) => b.finalCum - a.finalCum)[0]
-  if (!worst || worst.finalCum < 0.3 || worst.n_laps < 6) return null
-
-  const stintObj = circuitData.stints.find(s => s.stint === worst.stint)
-  if (!stintObj) return null
-  const laps = stintObj.laps
-  const n = laps.length
-  if (n < 6) return null
-
-  const optIdx    = Math.min(Math.max(Math.floor(n * 0.70), 4), n - 2)
-  const optimalPitLap = laps[optIdx].race_lap
-  const cumAtOpt  = laps[optIdx].cumulative
-  const cumAtEnd  = laps[n - 1].cumulative
-  const rawRisk   = cumAtEnd - cumAtOpt
-  const timeAtRisk = +(rawRisk > 0 ? rawRisk : worst.finalCum * 0.28).toFixed(2)
-  const extraLaps  = Math.max(1, n - 1 - optIdx)
-
-  const COMP = { SOFT: 'Blando', MEDIUM: 'Medio', HARD: 'Duro', INTER: 'Intermedio', WET: 'Lluvia' }
-  const compLabel  = COMP[worst.compound] || worst.compound
-  const confidence = r2 >= 0.95 ? 'MUY ALTA' : r2 >= 0.90 ? 'ALTA' : 'MODERADA'
-  const confColor  = r2 >= 0.90 ? C.green : C.orange
-
-  return (
-    <div style={{
-      marginTop: 20,
-      border: `1px solid ${C.red}44`,
-      borderLeft: `3px solid ${C.red}`,
-      borderRadius: 4,
-      background: 'linear-gradient(135deg, #1C0808 0%, #13131E 100%)',
-      overflow: 'hidden',
-      fontFamily: "'Titillium Web', sans-serif",
-    }}>
-      {/* Header */}
-      <div style={{
-        background: `${C.red}1A`,
-        borderBottom: `1px solid ${C.red}33`,
-        padding: '9px 18px',
-        display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        <span style={{ color: C.red, fontSize: 13, fontWeight: 900 }}>⚑</span>
-        <span style={{ color: C.white, fontWeight: 900, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-          APEX · SOPORTE A LA DECISIÓN DE PIT STOP · STINT {worst.stint} · {worst.compound}
-        </span>
-        <span style={{
-          marginLeft: 'auto', background: confColor + '22',
-          border: `1px solid ${confColor}44`, borderRadius: 2,
-          padding: '2px 8px', color: confColor, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-        }}>
-          CONFIANZA {confidence}
-        </span>
-      </div>
-
-      {/* KPI row */}
-      <div style={{ display: 'flex' }}>
-        {[
-          { label: 'VUELTA ÓPTIMA',       value: `LAP ${optimalPitLap}`, color: C.red,      note: 'ventana de entrada recomendada' },
-          { label: 'TIEMPO EN RIESGO',    value: `+${timeAtRisk}s`,       color: C.orange,   note: `${extraLaps} vuelta(s) fuera de ventana` },
-          { label: 'DEGRADACIÓN TOTAL',   value: `${worst.finalCum.toFixed(2)}s`, color: C.yellow, note: 'acumulada al final del stint' },
-          { label: 'R² GNN',              value: `${(r2 * 100).toFixed(1)}%`, color: confColor, note: 'variación explicada por el modelo' },
-        ].map(({ label, value, color, note }, i) => (
-          <div key={i} style={{
-            flex: 1, padding: '14px 12px', textAlign: 'center',
-            borderRight: i < 3 ? `1px solid #2A2A40` : 'none',
-          }}>
-            <div style={{ color, fontSize: 22, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.01em' }}>{value}</div>
-            <div style={{ color: C.gray, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 5 }}>{label}</div>
-            <div style={{ color: C.gray, fontSize: 9, marginTop: 3, opacity: 0.7 }}>{note}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Reasoning */}
-      <div style={{ padding: '12px 18px 14px', borderTop: `1px solid #2A2A40` }}>
-        <div style={{ color: C.gray, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
-          RAZONAMIENTO DEL MODELO
-        </div>
-        {[
-          `Stint ${worst.stint} en neumático ${compLabel}: degradación acumulada de ${worst.finalCum.toFixed(2)}s al finalizar. A partir de la vuelta ${optimalPitLap + 1} el desgaste entra en zona de pendiente acelerada.`,
-          `UNDERCUT: entrar ${Math.min(extraLaps, 3)} vuelta(s) antes que el rival elimina +${timeAtRisk}s de penalización de grip y permite atacar con neumático fresco mientras el rival sigue degradando.`,
-          `La GNN modela la carrera como grafo dinámico — captura estelas de turbulencia y tráfico obstruido que XGBoost ignora. Confianza de predicción: R² = ${r2?.toFixed(4)} (${confidence.toLowerCase()}).`,
-        ].map((text, i) => (
-          <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginBottom: i < 2 ? 8 : 0 }}>
-            <span style={{ color: C.red, fontWeight: 900, fontSize: 10, flexShrink: 0, lineHeight: 1.6 }}>▸</span>
-            <span style={{ color: C.lightGray, fontSize: 11, lineHeight: 1.55 }}>{text}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Chart 3: Desgaste acumulado — eje continuo dividido por stints ────────────
 
 function StintDegradation({ circuitKey }) {
@@ -194,7 +98,7 @@ function StintDegradation({ circuitKey }) {
     if (circuitKey && stintsData[circuitKey]) setSelected(circuitKey)
   }, [circuitKey])
 
-  const { chartData, stintMeta, pitLaps, mae, r2, yDomain, worstStint, validStints } = useMemo(() => {
+  const { chartData, stintMeta, cliffThreshold, mae, r2, yDomain, worstStint, validStints } = useMemo(() => {
     const data        = stintsData[selected]
     const mae         = data.gnn_mae
     const r2          = data.gnn_r2
@@ -220,11 +124,14 @@ function StintDegradation({ circuitKey }) {
       finalCum: s.laps[s.laps.length - 1].cumulative,
     }))
 
-    const pitLaps = stintMeta.slice(0, -1).map((s, i) => ({
-      x:    (s.endLap + stintMeta[i + 1].startLap) / 2,
-      from: s.compound,
-      to:   stintMeta[i + 1].compound,
-    }))
+    // Cliff threshold: horizontal line = median final degradation × 0.65
+    // When a stint's curve crosses this level, the tire has lost its competitive window
+    const finals = validStints
+      .map(s => s.laps.at(-1).cumulative)
+      .filter(v => v > 0.25)
+      .sort((a, b) => a - b)
+    const median  = finals.length ? finals[Math.floor(finals.length / 2)] : null
+    const cliffThreshold = median != null ? +(median * 0.65).toFixed(2) : null
 
     const allVals = validStints.flatMap(s => s.laps.map(l => l.cumulative))
     const minV    = Math.min(...allVals, 0)
@@ -235,7 +142,7 @@ function StintDegradation({ circuitKey }) {
     const worstStint = [...validStints].sort((a, b) =>
       (b.laps.at(-1)?.cumulative ?? 0) - (a.laps.at(-1)?.cumulative ?? 0))[0]
 
-    return { chartData, stintMeta, pitLaps, mae, r2, yDomain, worstStint, validStints }
+    return { chartData, stintMeta, cliffThreshold, mae, r2, yDomain, worstStint, validStints }
   }, [selected])
 
   const circuitInfo = CIRCUIT_META[selected] || {}
@@ -245,7 +152,7 @@ function StintDegradation({ circuitKey }) {
       <NarrativeHeader
         n="03"
         title="Ciclo completo de carrera: cuándo el neumático pierde competitividad"
-        subtitle="Cada sección de color es un stint. La curva muestra cuántos segundos extra tarda el carro vs la primera vuelta de ese stint — cuando sube, el neumático está perdiendo grip. Identifica la ventana óptima de pit stop antes de que la degradación penalice la estrategia. Selecciona el circuito en el gráfico superior para sincronizar el análisis."
+        subtitle="Cada sección de color es un stint. La curva muestra cuántos segundos extra tarda el carro vs la primera vuelta de ese stint — cuando sube, el neumático pierde grip. La línea punteada amarilla marca el CLIFF: el punto donde la degradación se acelera y el neumático deja de ser competitivo. Selecciona el circuito arriba para sincronizar el análisis."
       />
 
       {/* Circuit selector */}
@@ -282,8 +189,8 @@ function StintDegradation({ circuitKey }) {
           </div>
         ))}
         <div style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 16, height: 2, background: C.red, display: 'inline-block' }} />
-          <span style={{ color: C.gray, fontSize: 10 }}>Pit stop (cambio de neumáticos)</span>
+          <span style={{ width: 16, height: 0, border: `1.5px dashed ${C.yellow}`, display: 'inline-block' }} />
+          <span style={{ color: C.gray, fontSize: 10 }}>Cliff (pérdida de competitividad)</span>
         </div>
       </div>
 
@@ -311,26 +218,22 @@ function StintDegradation({ circuitKey }) {
               />
             ))}
 
-            {stintMeta.slice(0, -1).map((s, i) => {
-              const nextStart = stintMeta[i + 1].startLap
-              return (
-                <ReferenceArea
-                  key={`pit-${i}`}
-                  x1={s.endLap - 0.5} x2={nextStart + 0.5}
-                  fill={C.red}
-                  fillOpacity={0.18}
-                  label={{
-                    value: 'PIT STOP',
-                    position: 'insideTop',
-                    fill: C.red,
-                    fontSize: 8,
-                    fontFamily: "'Titillium Web', sans-serif",
-                    fontWeight: 900,
-                    dy: -18,
-                  }}
-                />
-              )
-            })}
+            {cliffThreshold != null && (
+              <ReferenceLine
+                y={cliffThreshold}
+                stroke={C.yellow}
+                strokeWidth={1.5}
+                strokeDasharray="6 3"
+                label={{
+                  value: `CLIFF  +${cliffThreshold}s`,
+                  position: 'insideTopRight',
+                  fill: C.yellow,
+                  fontSize: 8,
+                  fontFamily: "'Titillium Web', sans-serif",
+                  fontWeight: 900,
+                }}
+              />
+            )}
 
             <ReferenceLine y={0} stroke={C.gray} strokeWidth={1} strokeDasharray="4 2" />
 
@@ -394,12 +297,6 @@ function StintDegradation({ circuitKey }) {
         El modelo aprende esta curva de desgaste por compuesto. Con R²=<b>{r2?.toFixed(4)}</b>, predice cuándo el neumático empieza a perder grip — y cuánto tiempo acumula antes del pit stop óptimo.
       </InsightPill>
 
-      {/* Pit Stop Decision Panel */}
-      <PitStopPanel
-        circuitData={stintsData[selected]}
-        stintMeta={stintMeta}
-        r2={r2}
-      />
     </div>
   )
 }
