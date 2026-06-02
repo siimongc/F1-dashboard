@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Cell, LabelList,
+  ResponsiveContainer, ReferenceLine, ReferenceArea, Cell, LabelList,
 } from 'recharts'
 import DegradationCharts from './DegradationCharts'
 import TrainingCurves    from './TrainingCurves'
@@ -191,6 +191,130 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
 
         <InsightPill color={C.green}>
           <b>{above90} de {circuits.length} circuitos</b> superan el 90% — sin haber visto esos circuitos durante el entrenamiento.
+        </InsightPill>
+      </div>
+
+      {/* ── Chart 2: GNN vs XGBoost ── */}
+      <div>
+        <NarrativeHeader
+          n="02"
+          title="GNN vs XGBoost — misma prueba, resultado opuesto"
+          subtitle="Ambos modelos se evaluaron con Leave-One-Circuit-Out (LOCO): se entrena con 11 circuitos y se predice el que no vio. Un R² por debajo de 0 significa que el modelo es peor que simplemente predecir el promedio de los datos."
+        />
+
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 16px 8px 4px' }}>
+
+          {/* Leyenda */}
+          <div style={{ display: 'flex', gap: 20, paddingLeft: 16, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 14, height: 14, borderRadius: 3, background: C.green, display: 'inline-block' }} />
+              <span style={{ color: C.gray, fontSize: 10 }}>GNN GAT v5.1</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 14, height: 14, borderRadius: 3, background: '#4A4A68', display: 'inline-block' }} />
+              <span style={{ color: C.gray, fontSize: 10 }}>XGBoost</span>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: C.red, opacity: 0.5, display: 'inline-block' }} />
+                <span style={{ color: C.gray, fontSize: 9 }}>Peor que predecir el promedio (R² &lt; 0)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: C.green, opacity: 0.3, display: 'inline-block' }} />
+                <span style={{ color: C.gray, fontSize: 9 }}>Alta precisión (R² ≥ 0.90)</span>
+              </div>
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart
+              data={[...circuits]
+                .sort((a, b) => b.gnn.r2 - a.gnn.r2)
+                .map(c => ({
+                  id:    c.id,
+                  label: c.flag,
+                  name:  c.name,
+                  gnn:   +c.gnn.r2.toFixed(4),
+                  xgb:   +c.xgb.r2.toFixed(4),
+                }))}
+              margin={{ top: 8, right: 16, left: 8, bottom: 20 }}
+              barCategoryGap="25%"
+              barGap={2}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+
+              {/* Zona roja: R² negativo */}
+              <ReferenceArea y1={-4.5} y2={0} fill={C.red} fillOpacity={0.06} />
+              {/* Zona verde: R² alto */}
+              <ReferenceArea y1={0.90} y2={1.05} fill={C.green} fillOpacity={0.06} />
+
+              <XAxis
+                dataKey="label"
+                tick={{ ...axisStyle, fontSize: 15 }}
+                axisLine={false} tickLine={false}
+                label={{ value: 'Circuito', position: 'insideBottom', offset: -8, fill: C.gray, fontSize: 9, fontFamily: "'Titillium Web', sans-serif" }}
+              />
+              <YAxis
+                domain={[-4.5, 1.05]}
+                tick={axisStyle} axisLine={false} tickLine={false}
+                tickFormatter={v => v.toFixed(1)} width={36}
+                label={{ value: 'R²', angle: -90, position: 'insideLeft', offset: 12, fill: C.gray, fontSize: 9, fontFamily: "'Titillium Web', sans-serif" }}
+              />
+
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const d = payload[0]?.payload
+                  return (
+                    <div style={{ background: '#1A1A2A', border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', fontFamily: "'Titillium Web', sans-serif", fontSize: 11 }}>
+                      <div style={{ color: C.white, fontWeight: 700, marginBottom: 8 }}>{d?.name}</div>
+                      <div style={{ color: C.green, marginBottom: 3 }}>
+                        GNN: <b>{d?.gnn?.toFixed(4)}</b>
+                        <span style={{ color: C.gray, fontSize: 9, marginLeft: 6 }}>
+                          {d?.gnn >= 0.90 ? '✓ Alta precisión' : ''}
+                        </span>
+                      </div>
+                      <div style={{ color: d?.xgb < 0 ? C.red : C.lightGray }}>
+                        XGBoost: <b>{d?.xgb?.toFixed(4)}</b>
+                        <span style={{ fontSize: 9, marginLeft: 6 }}>
+                          {d?.xgb < 0 ? '✗ Peor que el promedio' : ''}
+                        </span>
+                      </div>
+                      {d?.xgb < 0 && d?.gnn >= 0.90 && (
+                        <div style={{ color: C.orange, fontSize: 10, marginTop: 6, borderTop: `1px solid ${C.border}`, paddingTop: 6 }}>
+                          Diferencia: +{(d.gnn - d.xgb).toFixed(3)} puntos de R²
+                        </div>
+                      )}
+                    </div>
+                  )
+                }}
+                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+              />
+
+              {/* Línea de 0 */}
+              <ReferenceLine y={0} stroke={C.lightGray} strokeWidth={1.5}
+                label={{ value: 'R² = 0', position: 'insideTopRight', fill: C.lightGray, fontSize: 8, fontFamily: "'Titillium Web', sans-serif", dy: 4, dx: -4 }}
+              />
+              {/* Línea de 0.90 */}
+              <ReferenceLine y={0.90} stroke={C.green} strokeDasharray="6 3" strokeWidth={1}
+                label={{ value: '0.90', position: 'insideTopRight', fill: C.green, fontSize: 8, fontFamily: "'Titillium Web', sans-serif", dy: 4, dx: -4 }}
+              />
+
+              <Bar dataKey="gnn" fill={C.green}  radius={[3, 3, 0, 0]} barSize={16} isAnimationActive animationDuration={700} />
+              <Bar dataKey="xgb" fill="#4A4A68" radius={[3, 3, 0, 0]} barSize={16} isAnimationActive animationDuration={700}>
+                {[...circuits]
+                  .sort((a, b) => b.gnn.r2 - a.gnn.r2)
+                  .map(c => (
+                    <Cell key={c.id} fill={c.xgb.r2 < 0 ? C.red : '#4A4A68'} opacity={c.xgb.r2 < 0 ? 0.7 : 0.8} />
+                  ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <InsightPill color={C.red}>
+          XGBoost obtiene <b>R² negativo en {circuits.filter(c => c.xgb.r2 < 0).length} circuitos</b> — el modelo no generaliza a pistas desconocidas.
+          El GNN supera 0.90 en <b>{circuits.filter(c => c.gnn.r2 >= 0.90).length} de {circuits.length}</b>.
         </InsightPill>
       </div>
 

@@ -19,38 +19,11 @@ const C = {
   lightGray:  '#C4C4D4',
 }
 
-const TABS = ['OVERVIEW', 'CIRCUITOS', 'SIMULACIÓN']
-
-// Small info card
-function InfoCard({ label, value, color, sub }) {
-  return (
-    <div style={{
-      background: C.surfaceAlt,
-      border: `1px solid ${C.border}`,
-      borderRadius: 4,
-      padding: '12px 16px',
-      flex: '1 1 140px',
-      fontFamily: "'Titillium Web', sans-serif",
-      textAlign: 'center',
-    }}>
-      <div style={{ color: color || C.white, fontSize: 22, fontWeight: 900, lineHeight: 1 }}>{value}</div>
-      <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginTop: 5 }}>{label}</div>
-      {sub && <div style={{ color: C.gray, fontSize: 10, marginTop: 3 }}>{sub}</div>}
-    </div>
-  )
-}
+const TABS = ['CIRCUITOS', 'SIMULACIÓN']
 
 export default function Dashboard() {
-  const { meta, circuits, training, monte_carlo } = tracksData
-  const [activeTab, setActiveTab] = useState('OVERVIEW')
-  const [trackId, setTrackId]     = useState('british')
-
-  const track = circuits.find(c => c.id === trackId) || circuits[0]
-
-  const avgGnnR2  = (circuits.reduce((s, c) => s + c.gnn.r2, 0) / circuits.length).toFixed(3)
-  const avgGnnMae = (circuits.reduce((s, c) => s + c.gnn.mae, 0) / circuits.length).toFixed(3)
-  const above90   = circuits.filter(c => c.gnn.r2 >= 0.90).length
-  const totalGraphs = circuits.reduce((s, c) => s + (c.gnn.n_graphs || 0), 0)
+  const { circuits, training } = tracksData
+  const [activeTab, setActiveTab] = useState('CIRCUITOS')
 
   return (
     <div style={{
@@ -171,50 +144,10 @@ export default function Dashboard() {
 
       {/* Tab content */}
       <main
-        key={trackId + activeTab}
+        key={activeTab}
         className="anim-fade-slide"
         style={{ padding: '24px' }}
       >
-        {/* ─── OVERVIEW ─── */}
-        {activeTab === 'OVERVIEW' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-
-            {/* KPI strip — métricas globales reales */}
-            <section>
-              <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
-                RESULTADOS GLOBALES · VALIDACIÓN LOCO · 12 CIRCUITOS
-              </div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <InfoCard
-                  label="R² promedio GNN"
-                  value={avgGnnR2}
-                  color={C.green}
-                  sub="validación leave-one-circuit-out"
-                />
-                <InfoCard
-                  label="Circuitos sobre 0.90"
-                  value={`${above90} / ${circuits.length}`}
-                  color={C.green}
-                  sub="en circuitos nunca vistos"
-                />
-                <InfoCard
-                  label="MAE promedio GNN"
-                  value={avgGnnMae + 's'}
-                  color={C.orange}
-                  sub="error medio en predicción"
-                />
-                <InfoCard
-                  label="Grafos evaluados"
-                  value={totalGraphs}
-                  color={C.lightGray}
-                  sub="sesiones de carrera reales"
-                />
-              </div>
-            </section>
-
-          </div>
-        )}
-
         {/* ─── SIMULACIÓN ─── */}
         {activeTab === 'SIMULACIÓN' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
