@@ -22,7 +22,7 @@ const C = {
 const TABS = ['CIRCUITOS', 'SIMULACIÓN']
 
 export default function Dashboard() {
-  const { circuits, training } = tracksData
+  const { circuits } = tracksData
   const [activeTab, setActiveTab] = useState('CIRCUITOS')
 
   return (
@@ -165,7 +165,7 @@ export default function Dashboard() {
 
         {/* ─── CIRCUITOS ─── */}
         {activeTab === 'CIRCUITOS' && (
-          <CircuitComparison circuits={circuits} trainingHistory={training.history} />
+          <CircuitComparison circuits={circuits} />
         )}
 
 

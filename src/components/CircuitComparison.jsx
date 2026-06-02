@@ -1,10 +1,9 @@
 import { useState } from 'react'
+import DegradationCharts from './DegradationCharts'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ReferenceArea, Cell, LabelList,
 } from 'recharts'
-import DegradationCharts from './DegradationCharts'
-import TrainingCurves    from './TrainingCurves'
 
 
 const C = {
@@ -57,7 +56,7 @@ function InsightPill({ color, children }) {
   )
 }
 
-export default function CircuitComparison({ circuits, trainingHistory }) {
+export default function CircuitComparison({ circuits }) {
   const [selectedId, setSelectedId] = useState('bahrain')
 
   const selected  = circuits.find(c => c.id === selectedId) || circuits[0]
@@ -66,7 +65,7 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
 
   const r2Data = [...circuits]
     .sort((a, b) => a.gnn.r2 - b.gnn.r2)
-    .map(c => ({ id: c.id, label: c.flag, r2: +c.gnn.r2.toFixed(4) }))
+    .map(c => ({ id: c.id, label: c.name.replace(' GP', ''), r2: +c.gnn.r2.toFixed(4) }))
 
   return (
     <div style={{ fontFamily: "'Titillium Web', sans-serif", display: 'flex', flexDirection: 'column', gap: 44 }}>
@@ -95,8 +94,8 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
                   axisLine={false} tickLine={false} tickFormatter={v => v.toFixed(1)}
                 />
                 <YAxis
-                  type="category" dataKey="label" tick={{ ...axisStyle, fontSize: 13 }}
-                  axisLine={false} tickLine={false} width={40}
+                  type="category" dataKey="label" tick={{ ...axisStyle, fontSize: 10 }}
+                  axisLine={false} tickLine={false} width={90}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -198,8 +197,8 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
       <div>
         <NarrativeHeader
           n="02"
-          title="GNN vs XGBoost — misma prueba, resultado opuesto"
-          subtitle="Ambos modelos se evaluaron con Leave-One-Circuit-Out (LOCO): se entrena con 11 circuitos y se predice el que no vio. Un R² por debajo de 0 significa que el modelo es peor que simplemente predecir el promedio de los datos."
+          title="GNN vs XGBoost — comparación de R² en validación LOCO"
+          subtitle="Métrica comparada: R² (coeficiente de determinación) — qué tan bien predice cada modelo el desgaste en circuitos nunca vistos. R² = 1 es predicción perfecta; R² < 0 significa que el modelo es peor que predecir el promedio."
         />
 
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 16px 8px 4px' }}>
@@ -208,11 +207,11 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
           <div style={{ display: 'flex', gap: 20, paddingLeft: 16, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ width: 14, height: 14, borderRadius: 3, background: C.green, display: 'inline-block' }} />
-              <span style={{ color: C.gray, fontSize: 10 }}>GNN GAT v5.1</span>
+              <span style={{ color: C.gray, fontSize: 14 }}>GNN GAT v5.1 <span style={{ color: C.white, fontWeight: 700 }}>· R²</span></span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ width: 14, height: 14, borderRadius: 3, background: '#4A4A68', display: 'inline-block' }} />
-              <span style={{ color: C.gray, fontSize: 10 }}>XGBoost</span>
+              <span style={{ color: C.gray, fontSize: 14 }}>XGBoost <span style={{ color: C.white, fontWeight: 700 }}>· R²</span></span>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -232,13 +231,13 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
                 .sort((a, b) => b.gnn.r2 - a.gnn.r2)
                 .map(c => ({
                   id:    c.id,
-                  label: c.flag,
+                  label: c.name.replace(' GP', ''),
                   name:  c.name,
                   gnn:   +c.gnn.r2.toFixed(4),
                   xgb:   +c.xgb.r2.toFixed(4),
                 }))}
               margin={{ top: 8, right: 16, left: 8, bottom: 20 }}
-              barCategoryGap="25%"
+              barCategoryGap="8%"
               barGap={2}
             >
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
@@ -250,9 +249,12 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
 
               <XAxis
                 dataKey="label"
-                tick={{ ...axisStyle, fontSize: 15 }}
+                tick={{ ...axisStyle, fontSize: 9 }}
                 axisLine={false} tickLine={false}
-                label={{ value: 'Circuito', position: 'insideBottom', offset: -8, fill: C.gray, fontSize: 9, fontFamily: "'Titillium Web', sans-serif" }}
+                interval={0}
+                angle={-35}
+                textAnchor="end"
+                height={60}
               />
               <YAxis
                 domain={[-4.5, 1.05]}
@@ -319,15 +321,6 @@ export default function CircuitComparison({ circuits, trainingHistory }) {
       </div>
 
       <DegradationCharts />
-
-      {trainingHistory && (
-        <div>
-          <div style={{ color: C.gray, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
-            CONVERGENCIA DEL ENTRENAMIENTO · 300 ÉPOCAS
-          </div>
-          <TrainingCurves history={trainingHistory} />
-        </div>
-      )}
 
     </div>
   )

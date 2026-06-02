@@ -145,7 +145,7 @@ function StintDegradation() {
   return (
     <div>
       <NarrativeHeader
-        n="02"
+        n="03"
         title="Desgaste acumulado por stint — ciclo completo de carrera"
         subtitle="El eje X es la vuelta de carrera. Cada sección de color es un stint (período con el mismo juego de neumáticos). La curva muestra cuántos segundos más tardó el carro en cada vuelta comparado con la primera vuelta de ese stint — cuando sube, el neumático está perdiendo grip. La línea roja es el pit stop: el carro entra a pits, cambia neumáticos, y la siguiente curva empieza desde cero."
       />
@@ -312,7 +312,7 @@ function MaeByCircuit() {
     .sort((a, b) => a.gnn.mae - b.gnn.mae)
     .map(c => ({
       id:    c.id,
-      label: c.flag,
+      label: c.name.replace(' GP', ''),
       name:  c.name,
       mae:   +c.gnn.mae.toFixed(4),
       r2:    +c.gnn.r2.toFixed(4),
@@ -346,8 +346,8 @@ function MaeByCircuit() {
             />
             <YAxis
               type="category" dataKey="label"
-              tick={{ ...axisStyle, fontSize: 13 }}
-              axisLine={false} tickLine={false} width={40}
+              tick={{ ...axisStyle, fontSize: 10 }}
+              axisLine={false} tickLine={false} width={90}
             />
             <Tooltip
               content={({ active, payload }) => {
@@ -400,9 +400,8 @@ function MaeByCircuit() {
 
 export default function DegradationCharts() {
   return (
-    <div style={{ fontFamily: "'Titillium Web', sans-serif", display: 'flex', flexDirection: 'column', gap: 44 }}>
+    <div style={{ fontFamily: "'Titillium Web', sans-serif" }}>
       <StintDegradation />
-      <MaeByCircuit />
     </div>
   )
 }
